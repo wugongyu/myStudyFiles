@@ -115,7 +115,7 @@
        (function () {
             let imgWidth = 400;
             let timer = null;
-            let container = document.getElementsByClassName('carousel')[0]
+            let container = document.getElementsByClassName('carousel')[0];
             let prev = document.getElementsByClassName("carousel-prev")[0];
             let next = document.getElementsByClassName("carousel-next")[0];
             let board = document.getElementsByClassName("carousel-board")[0];
@@ -145,8 +145,8 @@
                     setTimeout(() => {
                         // 去掉动画
                         board.style.transition = "0s";
-                        let distance = -(panels.length - 2) * imgWidth; // 最后一张图
-                        //将left的位置更新至4的位置（重新从倒数第二张图开始向前轮播）
+                        let distance = -(panels.length - 2) * imgWidth; // 倒数第二张图
+                        //将left的位置更新至4true的位置（重新从倒数第二张图开始向前轮播）
                         board.style.left = parseInt(board.style.left) + distance + "px"
                     }, 600)
                     index = panels.length - 2;
@@ -156,17 +156,17 @@
                     setTimeout(() => {
                         // 去掉动画
                         board.style.transition = "0s";
-                        let distance = (panels.length - 2) * imgWidth; // 第一张图的距离
+                        let distance = (panels.length - 2) * imgWidth; // 第二张图的距离
                         console.log(distance);
-                        //将left的位置更新至第二张图的距离的位置（重新从第二张图开始向后轮播）
+                        //将left的位置更新至1true(第二张图)的距离的位置（重新从第二张图开始向后轮播）
                         board.style.left = parseInt(board.style.left) + distance + "px"
                     }, 600)
                     index = 1;
                 }
                 changeDotsActiveClass(index);
             }
+            
             //自动轮播
-
             function play() {
                 timer = setInterval(function () {
                     setTimeout(function () {
@@ -204,6 +204,7 @@
             container.onmouseout = function () {
                 play()
             }
+            // 自动开始轮播
             play()
         })()
     </script>
