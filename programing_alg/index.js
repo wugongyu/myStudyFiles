@@ -25,8 +25,8 @@ function rotateArr(arr, rotateNum){
   return arr;
 }
 
-console.log(rotate([1, 2, 4, 5, 99, 67],5));
-console.log(rotateArr([1, 2, 4, 5, 99, 67], 5));
+// console.log(rotate([1, 2, 4, 5, 99, 67],5));
+// console.log(rotateArr([1, 2, 4, 5, 99, 67], 5));
 
 /**
  * 2、实现一个字符串匹配算法，从长度为 n 的字符串 S 中，查找是否存在字符串 T，T 的长度是 m，若存在返回所在位置
@@ -70,7 +70,7 @@ function resetArrOrderList(arr) {
   for(let i in obj) {
     resArr.push(obj[i]);
   }
-  console.log(resArr);
+  // console.log(resArr);
   return resArr;
 }
 
@@ -141,7 +141,7 @@ class LazyManClass {
   constructor(name) {
     this.taskList = [];
     this.name = name;
-    console.log(`Hi I am ${this.name}`);
+    // console.log(`Hi I am ${this.name}`);
     setTimeout(() => {
       this.next();
     }, 0)
@@ -195,10 +195,10 @@ class LazyManClass {
   }
 }
 
-function LazyMan(name) {
-  return new LazyManClass(name);
-}
-LazyMan('Tony').eat('lunch').eat('dinner').sleepFirst(5).sleep(4).eat('junk food');
+// function LazyMan(name) {
+//   return new LazyManClass(name);
+// }
+// LazyMan('Tony').eat('lunch').eat('dinner').sleepFirst(5).sleep(4).eat('junk food');
 
 /**
  * 7、某公司 1 到 12 月份的销售额存在一个对象里面
@@ -206,7 +206,7 @@ LazyMan('Tony').eat('lunch').eat('dinner').sleepFirst(5).sleep(4).eat('junk food
 function changeObjToArr(){
   let obj = {1:222, 2:123, 5:888};
   const result = Array.from({ length: 12 }).map((_, index) => obj[index + 1] || null);
-  console.log(result);
+  // console.log(result);
   return result;
 }
 
@@ -244,7 +244,7 @@ const flatten = function (arr) {
     return arr
 }
 
-console.log(flatten(arr));
+// console.log(flatten(arr));
 
 /**
  * 11、请把俩个数组 [A1, A2, B1, B2, C1, C2, D1, D2] 和 [A, B, C, D]，
@@ -278,7 +278,7 @@ function arrFlatternAndUnique() {
   const sort = (a, b) => a - b;
   var arr = [ [1, 2, 2], [3, 4, 5, 5], [6, 7, 8, 9, [11, 12, [12, 13, [14] ] ] ], 10];
   const newArr = arr.flat().unique().sort(sort)
-  console.log(newArr); // [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 ]
+  // console.log(newArr); // [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 ]
 }
 
 /**
@@ -293,7 +293,7 @@ function myThrottle(timeout) {
       clearTimeout(timer);
     }
     timer = setTimeout(() => {
-      console.log(e.target.value);
+      // console.log(e.target.value);
       timer = null;
     }, timeout);
   }
@@ -311,7 +311,6 @@ function onCompositionEnd(e){
   event.initEvent('input');
   e.target.dispatchEvent(event);
 }
-console.log(throttleInputEle, document)
 throttleInputEle.addEventListener('input', myThrottle(1000))
 throttleInputEle.addEventListener('compositionstart', onCompositionStart);
 throttleInputEle.addEventListener('compositionend', onCompositionEnd);
@@ -349,9 +348,9 @@ let p1=Promise.resolve(1),
 p2=Promise.resolve(2),
 p3=Promise.reject(3);
 myPromiseAll([p1,p2,p3]).then((value) =>{
-console.log(value)
+// console.log(value)
 }, (reason) => {
-  console.log(reason);
+  // console.log(reason);
 })
 
 /**
@@ -361,7 +360,7 @@ console.log(value)
 let matchNumResult = [...Array(10000).keys()].filter(item => {
   return item.toString().length > 1 && item.toString() === item.toString().split('').reverse().join('');
 });
-console.log(matchNumResult)
+// console.log(matchNumResult)
 
 /**
  * 16、给定一个数组 nums，编写一个函数将所有 0 移动到数组的末尾，同时保持非零元素的相对顺序。
@@ -389,7 +388,7 @@ function zeroMoveToLast(arr){
   }
   return arr;
 }
-console.log(zeroMoveToLast([0, 1, 2, 3, 0, 5, 0, 0,6]))
+// console.log(zeroMoveToLast([0, 1, 2, 3, 0, 5, 0, 0,6]))
 
 
 /**
@@ -535,7 +534,7 @@ function convert2(arr, parentId = 0){
   for(let item of arr) {
     if(item.parentId === parentId) {
       let children = convert2(arr, item.id);
-      console.log(item, children)
+      // console.log(item, children)
       if(children.length) {
         item.children = children;
       }
@@ -546,7 +545,7 @@ function convert2(arr, parentId = 0){
 }
 
 // console.log('convert', convert(list));
-console.log('convert2', convert2(list));
+// console.log('convert2', convert2(list));
 
 /**
  * 22、promise.race
@@ -596,5 +595,403 @@ _race([promise1, promise2])
     console.log("err", err);
   });
 
+/**
+ * 23、已知数据格式，实现一个函数 fn 找出链条中所有的父级 id
+ *  const value = '112'
+    const fn = (value) => {
+    ...
+    }
+    fn(value) // 输出 [1， 11， 112]
+ * */ 
+const data_23 = [{
+  id: '1',
+  name: 'test1',
+  children: [
+      {
+          id: '11',
+          name: 'test11',
+          children: [
+              {
+                  id: '111',
+                  name: 'test111'
+              },
+              {
+                  id: '112',
+                  name: 'test112'
+              }
+          ]
+
+      },
+      {
+          id: '12',
+          name: 'test12',
+          children: [
+              {
+                  id: '121',
+                  name: 'test121'
+              },
+              {
+                  id: '122',
+                  name: 'test122'
+              }
+          ]
+      }
+  ]
+}];
+
+// 方法1： 思路是找到子节点，再回溯找父节点。 复杂度是O(n)，循环n次子节点，但是需要额外空间记录父节点引用
+function fn_1(value){
+  // 回溯的标记
+  let parent = Symbol('parent');
+  // 目标子节点
+  let targetNode;
+  function findResult(arr,parentNode) {
+    for (let i = 0; i < arr.length; i++) {
+      arr[i][parent] = parentNode;
+      if(arr[i].id === value) {
+        targetNode = arr[i];
+        return;
+      }
+      !targetNode && arr[i].children && findResult(arr[i].children, arr[i]);
+    }
+    if(targetNode) return;
+  }
+  findResult(data_23, null);
+  let result = [];
+  if(!targetNode) return null;
+  while(targetNode) {
+    result.unshift(targetNode.id);
+    targetNode = targetNode[parent]
+  }
+  return result;
+}
+// console.log(fn_1('122'))
+
+// 方法2 广度优先搜索
+function fn_bfs(arr, targetId) {
+  const quene = [...arr];
+  do {
+    const current  = quene.shift();
+    if(current.children) {
+      quene.push(...current.children.map(item => ({...item, path: (current.path || current.id) + '-' + item.id})))
+    }
+    if(current.id === targetId) return current
+  } while (quene.length);
+  return undefined;
+}
+// 方法3 深度优先搜索
+function fn_dfs(arr, targetId){
+  const stack = [...arr];
+  do {
+    const current = stack.pop();
+    if(current.children) {
+      stack.push(...current.children.map(item => ({...item, path: (current.path || current.id) + '-' + item.id})));
+    }
+    if(current.id === targetId) return current;
+  } while (stack.length);
+  return undefined;
+}
+// 方法4 公共搜索方法(bfs | dfs) 默认bfs
+
+function fn_common(arr, targetId, mode){
+  const queneOrStack = [...arr];
+  do {
+    const current = queneOrStack[mode === 'dfs' ? 'pop' : 'shift']();
+    if(current.children) {
+      queneOrStack.push(...current.children.map(item => ({
+        ...item, 
+        path: (current.path || current.id) + '-' + item.id, 
+        concatName: (current.concatName || current.name) + '-' + item.name, 
+      })));
+    }
+    if(current.id === targetId) return current;
+  } while (queneOrStack.length);
+  return undefined;
+}
+
+const cityData = [
+  {
+    id: '1',
+    name: '广东省',
+    children: [
+      {
+        id: '11',
+        name: '深圳市',
+        children: [
+          {
+            id: '111',
+            name: '南山区'
+          },
+          {
+            id: '112',
+            name: '福田区',
+            children: [{
+              id: '1121',
+              name: 'A街道'
+            }]
+          }
+        ]
+      },
+      {
+        id: '12',
+        name: '东莞市',
+        children: [
+          {
+            id: '121',
+            name: 'A区'
+          },
+          {
+            id: '122',
+            name: 'B区',
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: '2',
+    name: '江苏省',
+    children: [
+      {
+        id: '21',
+        name: 'xx市',
+        children: [
+          {
+            id: '211',
+            name: 'xx区'
+          },
+          {
+            id: '212',
+            name: 'xx区',
+            children: [{
+              id: '2121',
+              name: 'A街道'
+            }]
+          }
+        ]
+      },
+      {
+        id: '22',
+        name: 'xx22市',
+        children: [
+          {
+            id: '221',
+            name: 'A区'
+          },
+          {
+            id: '222',
+            name: 'B区',
+          }
+        ]
+      }
+    ]
+  }
+];
+
+// console.log(fn_common(cityData, '2121'))
+
+/**
+ * 24、给定两个大小为 m 和 n 的有序数组 nums1 和 nums2。请找出这两个有序数组的中位数。
+ * 要求算法的时间复杂度为 O(log(m+n))。
+    示例 1：
+    nums1 = [1, 3]
+    nums2 = [2]
+    中位数是 2.0
+
+    示例 2：
+    nums1 = [1, 2]
+    nums2 = [3, 4]
+    中位数是(2 + 3) / 2 = 2.5
+ * */ 
+
+// 注意：sort之后时间复杂度已经是O(nlog(n))了，不符合题目O(log(m+n))，同时要注意题目给的是有序数组
+// function findMiddleNum(arr1, arr2) {
+//   const handledArr = [...arr1, ...arr2].sort((a, b) => a - b);
+//   let len = handledArr.length;
+//   if(len % 2 === 0) {
+//     // 偶数
+//     let mIndex = len / 2;
+//     return (handledArr[mIndex - 1] + handledArr[mIndex]) / 2;
+//   } else {
+//     // 奇数
+//     let mIndex = Math.floor(len / 2);
+//     return handledArr[mIndex];
+//   }
+// }
+
+/**
+ * @param {number[]} nums1
+ * @param {number[]} nums2
+ * @return {number}
+ */
+// O(log(m + n))
+var findMedianSortedArrays = function(nums1, nums2) {
+  let m = nums1.length
+  let n = nums2.length
+  let k1 = Math.floor((m + n + 1) / 2)
+  let k2 = Math.floor((m + n + 2) / 2)
+
+  return (findMedianSortedArraysCore(nums1, 0, nums2, 0, k1) + findMedianSortedArraysCore(nums1, 0, nums2, 0, k2)) / 2
+};
+
+/**
+ * 
+ * @param {number[]} nums1 
+ * @param {number[]} nums2 
+ * @param {number} i 
+ * @param {number} j 
+ * @param {number} k 
+ * @return {number}
+ */
+const findMedianSortedArraysCore = (nums1, i, nums2, j, k)  => {
+  // 如果数组起始位置已经大于数组长度-1
+  // 说明已经是个空数组
+  // 直接从另外一个数组里取第k个数即可
+  if (i > nums1.length - 1) {
+    return nums2[j + k - 1]
+  }
+  if (j > nums2.length - 1) {
+    return nums1[i + k - 1]
+  }
+  // 如果k为1
+  // 就是取两个数组的起始值里的最小值
+  if (k === 1) {
+    return Math.min(nums1[i], nums2[j])
+  }
+  // 取k2为(k/2)或者数组1的长度或者数组2的长度的最小值
+  // 这一步可以避免k2大于某个数组的长度（长度为从起始坐标到结尾）
+  let k2 = Math.floor(k / 2)
+  let length1 = nums1.length - i
+  let length2 = nums2.length - j
+  k2 = Math.min(k2, length1, length2)
+
+  let value1 = nums1[i + k2 - 1]
+  let value2 = nums2[j + k2 - 1]
+
+  // 比较两个数组的起始坐标的值
+  // 如果value1小于value2
+  // 就舍弃nums1前i + k2部分
+  // 否则舍弃nums2前j + k2部分
+  if (value1 < value2) {
+    return findMedianSortedArraysCore(nums1, i + k2, nums2, j, k - k2)
+  } else {
+    return findMedianSortedArraysCore(nums1, i, nums2, j + k2, k - k2)
+  }
+}
+
+console.log(findMedianSortedArrays([1, 3, 5, 7], [2, 4, 6]))
+
+// 利用二分查找思想 https://mp.weixin.qq.com/s/OE4lHO8-jOIxIfWO_1oNpQ
+const findMedianSortedArraysByDichotomy = (arrayA, arrayB) => {
+  let aLen = arrayA.length;
+  let bLen = arrayB.length;
+  // 如果数组A的长度大于等于数组B的，则交换数组
+  if(aLen > bLen) {
+    [arrayB, arrayA] = [arrayA, arrayB];
+    [bLen, aLen] = [aLen, bLen];
+  }
+  let start = 0;
+  let end = aLen;
+  let mid = (aLen + bLen + 1) / 2;
+  // 循环查找合适的i,j（其中i,j满足 i+j = (aLen + bLen + 1) / 2）
+  console.log(start <= end);
+  while(start <= end) {
+    let i = Math.ceil((start + end) / 2);
+    let j = mid - i;
+    if(i < end && arrayB[j - 1] > arrayA[i]) {
+      // i偏小了，需要右移
+      start = i + 1;
+    } else if(i > start && arrayA[i-1] > arrayB[j]) {
+      // i偏大了，需要左移
+      end = i - 1;
+    } else {
+      // i刚好合适
+      let maxLeft;
+      let minRight;
+      if(i === 0) {
+        //数组A的元素都大于数组B的情况
+        maxLeft = arrayB[j-1];
+      } else if(j === 0) {
+        //数组A的元素都小于数组B的情况
+        maxLeft = arrayA[i-1];
+      } else {
+        maxLeft = Math.max(arrayA[i-1], arrayB[j-1]);
+      }
+      // 如果大数组的长度是奇数，中位数就是左半部分的最大值
+      if((aLen+bLen) % 2 === 1) {
+        return maxLeft;
+      }
+      if(i === aLen) {
+        minRight = arrayB[j];
+      } else if(j === bLen) {
+        minRight = arrayA[i];
+      } else {
+        minRight = Math.min(arrayA[i], arrayB[j]);
+      }
+      return (maxLeft + minRight) / 2;
+    }
+  }
+  return 0;
+}
+
+console.log(findMedianSortedArraysByDichotomy([3,5,6,7,8,12,20], [1,10,17,18])) // 8
+
+/**
+ * 25、模拟实现一个深拷贝，并考虑对象相互引用以及 Symbol 拷贝的情况
+*/
+function find (list, f) {
+  return list.filter(f)[0]
+}
+// 解决了循环引用，cache 存储所有嵌套 obj 及其 copy 副本，
+// 以 cache 中是否有某个嵌套 obj 来判断是否循环引用，有则返回 引用的 copy
+function deepCopy(obj, cache = []) {
+  if(obj === null || typeof obj !== 'object') return obj;
+  const hit = find(cache, c=> c.original === obj);
+  if(hit) {
+    return hit.copy;
+  }
+  const copy = Array.isArray(obj) ? [] : {};
+  cache.push({
+    original: obj,
+    copy,
+  });
+  // 普通遍历key是获取不到key 为Symbol的，故通过getOwnPropertySymbols方法获取symbol类型的key值
+  const targetKeys = [...Object.getOwnPropertySymbols(obj), ...Object.keys(obj)];
+  targetKeys.forEach(k => {
+    copy[k] = deepCopy(obj[k], cache);
+  });
+  return copy;
+}
+let objx ={}
+objx.repeat = objx
+
+let obj = {
+  [Symbol('name')]: 'litokele',
+  gender: Symbol('male'),
+  age: 18,
+  favoriteAnime: ['xxx1', 'xxx2'],
+  obj: {
+    [Symbol('test')]: 'test',
+    name: 'kele',
+    age: 18
+  },
+  repeat: objx
+}
+let myObj1 = deepCopy(obj)
+console.log('deepCopy_myObj1', myObj1);
+
+
+
+/**
+ * 26、用 JavaScript 写一个函数，输入 int 型，返回整数逆序后的字符串。如：输入整型 1234，返回字符串“4321”。
+ * 要求必须使用递归函数调用，不能用全局变量，输入函数必须只有一个参数传入，必须返回字符串。
+ * */ 
+
+function reverseNum(num) {
+  const str = num.toString();
+  return str.length === 1 ? str : reverseNum(str.substring(1)) + str.substring(0, 1);
+}
+
+console.log(reverseNum(123456789))
 
 
