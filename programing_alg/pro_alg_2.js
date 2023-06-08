@@ -133,3 +133,303 @@ console.log(localStorage2.getItem("test")); //null
     }
   })
 })(window);
+
+/**
+ * 3、localstorage支持expires
+ * 存储的时候加个存储时间戳和有效期时长，取的时候判断一下
+ * */ 
+;(function() {
+  var getItem = localStorage.getItem.bind(localStorage);
+  var setItem = localStorage.setItem.bind(localStorage);
+  var removeItem = localStorage.removeItem.bind(localStorage);
+  localStorage.getItem = function(key) {
+    var expires = getItem(key + '_expires');
+    if(expires && new Date() > new Date(Number(expires))) {
+      removeItem(key);
+      removeItem(key + '_expires');
+    }
+    return getItem(key);
+  }
+  localStorage.setItem = function(key, value, expires) {
+    if(typeof expires !== 'undefined') {
+      var expiresDate = new Date(expires).valueOf();
+      setItem(key + '_expires', expiresDate);
+    }
+    return setItem(key, value);
+  }
+})();
+
+/**
+ * 4、url有三种情况
+    https://www.xx.cn/api?keyword=&level1=&local_batch_id=&elective=&local_province_id=33
+    https://www.xx.cn/api?keyword=&level1=&local_batch_id=&elective=800&local_province_id=33
+    https://www.xx.cn/api?keyword=&level1=&local_batch_id=&elective=800,700&local_province_id=33
+    匹配elective后的数字输出（写出最优解法）:
+
+    [] || ['800'] || ['800','700']
+ * */ 
+function getUrlValue(url){
+  if(!url) return;
+  // 其中：（?<=elective=） 是指匹配以elective=开头的字符串；
+  // (\d+(, \d+))指匹配数字开头，可能不定数量逗号分隔后是数字的字符串。
+  let res = url.match(/(?<=elective=)(\d+(,\d+)*)/);
+  return res ?res[0].split(',') : [];
+}
+
+
+/**
+ * 5、考虑到性能问题，如何快速从一个巨大的数组中随机获取部分元素。
+      比如有个数组有100K个元素，从中不重复随机选取10K个元素。
+ * */ 
+function getFormBigArr(itemNums = 10000, bigArrNums = 100000){
+  let set = new Set();
+  while(true) {
+    if(set.length > itemNums - 1) break;
+    let temp = parseInt(Math.random() * bigArrNums, 10);
+    if(set.has(temp)) continue;
+    set.add(temp);
+  }
+  return Array.from(set);
+}
+
+function getFormBigArr2(itemNums = 10000, bigArrNums = 100000){
+  const bigArr = Array.from({length: bigArrNums}, (v, i) => i);
+  const resultArr = [];
+  const keysSet = new Set();
+  let count = 0;
+  console.time('耗时');
+  do {
+    const key = Math.floor(Math.random() * (bigArrNums - 1));
+    if(keysSet[key] === undefined) {
+      resultArr.push(bigArr[key]);
+      keysSet[key] = 1;
+    }
+    count++;
+  } while (resultArr.length < itemNums);
+  console.timeEnd('耗时');
+  console.log(`循环次数：${count}`);
+}
+
+/**
+ * 6、请写一个函数，完成以下功能
+ * 输入： '1, 2, 3, 5, 7, 8, 10'，
+ * 输出： '1~3,5,7~8,10'
+ * */ 
+
+function collectContinuousNum(numStr){
+  var result = [];
+  var numList = numStr.split(',').map(item => Number(item));
+  var temp = numList[0];
+  numList.forEach((number, index) => {
+    // 当前数加1是否等于后一个数，若是则说明是连续数字，不做操作
+    if(number + 1 !== numList[index + 1]) {
+      if(temp !== number) {
+        result.push(`${temp}~${number}`);
+      } else {
+        result.push(number);
+      }
+      temp = numList[index + 1];
+    }
+  });
+  console.log('collectContinuousNum', result.join(','))
+  return result.join(',');
+}
+const input = "1,2,3,5,7,8,10";
+collectContinuousNum(input);
+
+/**
+ * 
+ * 7、对象平铺
+  var entry = {
+  a: {
+    b: {
+      c: {
+        dd: 'abcdd'
+      }
+    },
+    d: {
+      xx: 'adxx'
+    },
+    e: 'ae'
+    }
+  }
+
+  // 要求转换成如下对象
+  var output = {
+  'a.b.c.dd': 'abcdd',
+  'a.d.xx': 'adxx',
+  'a.e': 'ae'
+  }
+ * */ 
+
+var entry = {
+  a: {
+    b: {
+      c: {
+        dd: 'abcdd'
+      }
+    },
+    d: {
+      xx: 'adxx'
+    },
+    e: 'ae'
+    }
+}
+var output = {
+  'a.b.c.d.ff': 'abcdff',
+  'a.d.xx': 'adxx',
+  'a.e': 'ae'
+  }
+function flatObj(obj, parentKey = '', result = {}){
+  for (const key in obj) {
+    if (Object.hasOwnProperty.call(obj, key)) {
+      const concatKey = `${parentKey}${key}`;
+      if(typeof obj[key] === 'object') {
+        flatObj(obj[key], `${concatKey}.`, result)
+      } else {
+        result[concatKey] = obj[key];
+      }
+    }
+  }
+  console.log('flatObj', result);
+  return result;
+}
+
+flatObj(entry)
+
+/**
+ * 8、对象反平铺
+ * 遍历对象，如果键名称含有 . 将最后一个子键拿出来，构成对象，
+ * 如 {'a.b.c.dd': 'abcdd'} 变为 {'a.b.c': { dd: 'abcdd' }} , 如果变换后的新父键名中仍还有点，递归进行以上操作即可。 
+ * */ 
+function nested(obj) {
+  Object.keys(obj).forEach(k => {
+    getNested(k);
+  });
+  console.log('nested',obj);
+  return obj;
+  function getNested(key){
+    const idx = key.lastIndexOf('.');
+    const value = obj[key];
+    if(idx !== -1) {
+      delete obj[key];
+      const mainKey = key.substring(0, idx);
+      const subKey = key.substring(idx+1);
+      if(obj[mainKey] === undefined) {
+        obj[mainKey] = { [subKey]: value}
+      } else {
+        obj[mainKey][subKey] = value;
+      }
+      if(/\./.test(mainKey)) {
+        getNested(mainKey);
+      }
+    }
+  }
+}
+
+nested(output)
+
+/**
+ * 10、去重
+ *  规则1：如果是数组 则每个元素相等认为两个数组相等
+    规则2：如果是对象 则每个键的值都相等则认为两个对象相等
+ * */ 
+
+var getType = (function() {
+  const typeMap = { 
+    '[object Boolean]': 'boolean',
+    '[object Number]': 'number',
+    '[object String]': 'string',
+    '[object Function]': 'function',
+    '[object Array]': 'array',
+    '[object Date]': 'date',
+    '[object RegExp]': 'regexp',
+    '[object Object]': 'object',
+    '[object Error]': 'error',
+    '[object Symbol]': 'symbol'
+  };
+  return function getType(obj) {
+    if(obj == null) {
+      return obj + '';
+    }
+    const typeStr = Object.prototype.toString.call(obj);
+    return typeof obj === 'object' || typeof obj === 'function' ?
+      typeMap[typeStr] || 'object' : typeof obj;
+  }
+})();
+
+/**
+* 判断两个元素是否相等
+* 在 === 的基础上 有如下扩展规则
+* 规则1：如果是数组 则每个元素相等认为两个数组相等
+* 规则2：如果是对象 则每个键的值都相等则认为两个对象相等
+* @param {any} target 比较元素
+* @param {any} other 其他元素
+* @returns {Boolean} 是否相等
+*/
+
+function isEqual(target, other) {
+  const t1 = getType(target);
+  const t2 = getType(other);
+  if(t1 !== t2) return false; // 类型不同
+  if(t1 === 'array') {
+    if(target.length !== other.length) return false; // 数组长度不相等
+    // every方法测试一个数组内的所有元素是否都能通过某个指定函数的测试。它返回一个布尔值。
+    return target.every((item, index) => {
+      return isEqual(item, other[index]); // 根据数组下标进行数组比较
+    })
+  }
+  if(t2 === 'object') {
+    const targetKeys = Object.keys(target);
+    const otherKeys = Object.keys(other);
+    if(targetKeys.length !== otherKeys.length) return false; // 对象的属性长度不相等
+    return targetKeys.every((k, index) => {
+      return isEqual(target[k], other[k]);
+    })
+  }
+  return target === other;
+}
+
+/**
+* 对输入数组按照指定规则进行去重
+*
+* @param {Array<any>} arr 待去重的数组
+* @returns {Array<any>} 去重后的新数组
+*/
+function unique(arr){
+  const result = arr.reduce((calculateArr, current) => {
+    const isUnique = !calculateArr.some((item) => isEqual(current, item));
+    if(isUnique) {
+      calculateArr.push(current);
+    }
+    return calculateArr;
+  },[]);
+  return result;
+}
+
+console.log('normal', unique([123, "meili", "123", "mogu", 123]));
+console.log('array', unique([123, [1, 2, 3], [1, "2", 3], [1, 2, 3], "meili"]));
+console.log('object', unique([123, {a: 1}, {a: {b: 1}}, {a: "1"}, {a: {b: 1}}, "meili"]));
+
+/**
+ * 11、找出字符串中连续出现最多的字符和个数
+ * 'abcaakjbb' => {'a':2,'b':2}
+ * 'abbkejsbcccwqaa' => {'c':3}
+ * */ 
+// 注意，是连续出现最多
+function getContinueLongest(str){
+  // 正则表达式中的小括号"()"。是代表分组的意思。 如果再其后面出现\1则是代表与第一个小括号中要匹配的内容相同, * 代表匹配零次或多次
+  // 注意：\1必须与小括号配合使用
+  const arr = str.match(/(\w)\1*/g);
+  const maxLen = Math.max(...arr.map(item => item.length));
+  const maxObj = arr.reduce((calculateObj, current) => {
+    if(current.length === maxLen) {
+      calculateObj[current[0]] = maxLen;
+    }
+    return calculateObj
+  }, {});
+  return maxObj;
+}
+
+console.log(getContinueLongest('abcaakjbb'));
+console.log(getContinueLongest('abbkejsbcccwqaa'));
