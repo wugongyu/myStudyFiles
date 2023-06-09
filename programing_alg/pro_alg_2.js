@@ -181,7 +181,7 @@ function getUrlValue(url){
  * 5、考虑到性能问题，如何快速从一个巨大的数组中随机获取部分元素。
       比如有个数组有100K个元素，从中不重复随机选取10K个元素。
  * */ 
-function getFormBigArr(itemNums = 10000, bigArrNums = 100000){
+function getFromBigArr(itemNums = 10000, bigArrNums = 100000){
   let set = new Set();
   while(true) {
     if(set.length > itemNums - 1) break;
@@ -192,7 +192,7 @@ function getFormBigArr(itemNums = 10000, bigArrNums = 100000){
   return Array.from(set);
 }
 
-function getFormBigArr2(itemNums = 10000, bigArrNums = 100000){
+function getFromBigArr2(itemNums = 10000, bigArrNums = 100000){
   const bigArr = Array.from({length: bigArrNums}, (v, i) => i);
   const resultArr = [];
   const keysSet = new Set();
@@ -433,3 +433,15 @@ function getContinueLongest(str){
 
 console.log(getContinueLongest('abcaakjbb'));
 console.log(getContinueLongest('abbkejsbcccwqaa'));
+
+/**
+ * 12、统计 1 ~ n 整数中出现 1 的次数
+ * */ 
+
+const oneCounter = (n) => {
+  let count = 0;
+  for (let i = 0; i < n; i++) {
+    count += String(i).split('').filter(s => s === '1').length;
+  }
+  return count;
+}
