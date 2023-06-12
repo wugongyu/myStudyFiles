@@ -445,3 +445,74 @@ const oneCounter = (n) => {
   }
   return count;
 }
+
+/**
+ * 13、扁平化数组转为树结构数组，且要去重
+ * 将[{id: 1}, {id: 2, pId: 1}, ...] 的重复数组（有重复数据）转成树形结构的数组 [{id: 1, child: [{id: 2, pId: 1}]}, ...] （需要去重）
+ * */ 
+function flatArrMapToTree(arr){
+  let result = [];
+  // 将扁平化数组转为对象，实现去重
+  const map = arr.reduce((acc, cur) => {
+    acc[cur.id] = cur;
+  }, {});
+  // 将map对象转为tree数组
+  for (const item of map) {
+    if(!item.pId) {
+      // 非子元素，直接添加到数组中
+      result.push(item);
+    } else {
+      // 子元素，找到对应父节点并添加到对应父节点的child数组中
+      const parentNode = map[item.pId];
+      parentNode.child = parentNode.child || [];
+      parentNode.child.push(item);
+    }
+  }
+}
+
+
+/**
+ * 14、有一堆扑克牌，将牌堆第一张放到桌子上，再将接下来的牌堆的第一张放到牌底，如此往复；
+
+    最后桌子上的牌顺序为： (牌底) 1,2,3,4,5,6,7,8,9,10,11,12,13 (牌顶)；
+
+    问：原来那堆牌的顺序，用函数实现。
+  思路：
+    正向（操作堆排获取桌牌）： 拿取堆牌的顶牌作为桌牌(顺序为从左到右排列)，接着将堆牌的顶牌放到牌底，循环往复得到桌牌。
+    逆向（操作桌排获取堆牌）： 拿取桌牌的顶牌作为堆牌(顺序为从左到右排列)，接着将堆牌的底牌放到牌顶，循环往复得到堆牌。
+ * */ 
+// 根据桌牌获取堆牌
+function getPilePoke(deskArr){
+  const pileArr = [];
+  let i = 1;
+  while(deskArr.length) {
+    if(i % 2 === 0 ) {
+      let bottomItem = pileArr.shift(); 
+      pileArr.push(bottomItem)
+    } else {
+      let topItem = deskArr.pop(); 
+      pileArr.push(topItem)
+    }
+    i++;
+  }
+  return pileArr;
+}
+// 根据堆牌获取桌牌
+function getDeskPoke(pileArr){
+  const deskArr = [];
+  let i = 1;
+  while(pileArr.length) {
+    if(i % 2 === 0 ) {
+      let bottomItem = pileArr.pop(); 
+      pileArr.unshift(bottomItem)
+    } else {
+      let topItem = pileArr.pop(); 
+      deskArr.push(topItem)
+    }
+    i++;
+  }
+  return deskArr;
+}
+
+console.log('堆牌为：', getPilePoke([1,2,3,4,5,6,7,8,9,10,11,12,13]));
+console.log('桌牌为：', getDeskPoke([7, 10, 6, 13, 5, 9, 4, 11, 3, 8, 2, 12, 1]));
