@@ -516,3 +516,48 @@ function getDeskPoke(pileArr){
 
 console.log('堆牌为：', getPilePoke([1,2,3,4,5,6,7,8,9,10,11,12,13]));
 console.log('桌牌为：', getDeskPoke([7, 10, 6, 13, 5, 9, 4, 11, 3, 8, 2, 12, 1]));
+
+
+function wait() {
+	return new Promise(resolve =>
+		setTimeout(resolve, 10 * 1000)
+	)
+}
+
+/**
+ * await 究竟做了什么,?
+ * ````
+ * await foo();
+ * 执行代码...
+ * ```
+ * 类似于Promise.resolve(foo()).then(()=>{ 执行代码... })
+ * */ 
+async function main() {
+	console.time();
+	const x = await wait(); // 每个都是都执行完才结束,包括setTimeout（10*1000）的执行时间
+	const y = await wait(); // 执行顺序 x->y->z 同步执行，x 与 setTimeout 属于同步执行
+	const z = await wait();
+	console.timeEnd(); // default: 30099.47705078125ms
+	
+	console.time();
+	const x1 = wait(); // x1,y1,z1 同时异步执行， 包括setTimeout（10*1000）的执行时间
+	const y1 = wait(); // x1 与 setTimeout 属于同步执行
+	const z1 = wait(); // 三个任务发起的时候没有await，可以认为是同时发起了三个异步。之后各自await任务的结果。结果按最高耗时计算，由于三个耗时一样。所以结果是 10 * 1000ms
+	await x1;
+	await y1;
+	await z1;
+	console.timeEnd(); // default: 10000.67822265625ms
+	
+	console.time();
+	const x2 = wait(); // x2,y2,z2 同步执行，但是不包括setTimeout（10*1000）的执行时间
+	const y2 = wait(); // x2 与 setTimeout 属于异步执行
+	const z2 = wait();
+	x2,y2,z2;
+	console.timeEnd(); // default: 0.065185546875ms
+}
+// main();
+
+
+/**
+ * setTimeout实现setInterval
+ * */ 
