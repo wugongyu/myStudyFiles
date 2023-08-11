@@ -978,7 +978,7 @@ let obj = {
   repeat: objx
 }
 let myObj1 = deepCopy(obj)
-console.log('deepCopy_myObj1', myObj1);
+console.log("deepCopy_myObj1", myObj1);
 
 /**
  * 26、用 JavaScript 写一个函数，输入 int 型，返回整数逆序后的字符串。如：输入整型 1234，返回字符串“4321”。

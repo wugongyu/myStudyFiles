@@ -14,8 +14,48 @@
 
 <body>
     <div id="container"></div>
+    <!-- form 表单的提交会伴随着跳转到action中指定 的url 链接，
+        为了阻止这一行为，可以通过设置一个隐藏的iframe 页面，
+        并将form 的target 属性指向这个iframe，当前页面iframe则不会刷新页面 -->
+    <!-- 通过js 进行表单的提交 存在问题，页面会跳转刷新-->
+    <form action="http://localhost:3008/user" method="POST" name="jsForm" target="targetIfr" id="jsForm">
+        <p>name: <input type="text" name="username"></p>
+        <p>password: <input type="password" name="password"></p>
+        <button id="btn">提交</button>
+    </form>
+    <!-- 通过jquery 进行表单的提交 存在问题，并阻止页面跳转刷新-->
+    <form action="http://localhost:3008/user" method="POST" name="jqueryForm" target="targetIfr" id="jqueryForm">
+        <p>name: <input type="text" name="username"></p>
+        <p>password: <input type="password" name="password"></p>
+        <button id="jqbtn">提交</button>
+    </form>
+    <iframe name="targetIfr" style="display:none"></iframe>
     <!-- <script src="./basicFunction/debounce.js"></script> -->
     <script src="./practice.js"></script>
+    <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+    <script>
+        // js
+        var btn = document.getElementById('btn')
+        var jsForm = document.getElementById('jsForm')
+        btn.onclick = function () {
+            jsForm.submit((response)=> {
+                console.log('js-submit success');
+                console.log('js--form-submit-response', response);
+                console.log('--------------------')
+            })
+        }
+
+        // jq
+        // jquery
+        $('#jqbtn').click(function () {
+            $('#jqueryForm').submit(function (response) {
+                console.log('jq-submit success');
+                console.log('jq--form-submit-response', response);
+                console.log('--------------------')
+                return false
+            })
+        })
+    </script>
 </body>
 
 </html>
