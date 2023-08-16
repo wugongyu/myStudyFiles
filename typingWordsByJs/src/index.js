@@ -133,13 +133,11 @@ const obj = {
   singleBack: true,
   sentencePause: false
 }
-const typing = new EasyTyper(obj, [`黎明前的黑暗是最深不见底的黑暗！`,`天下哪有真情在，只要够萌咱都爱！`], (instance)=>{
-  // 回调函数 如果这里使用了递归调用会一直循环打印，需要在外部触发停止
-  // 此回调用于获取新的数据然后重新输出
-  //instance.input = `天下哪有真情在，只要够萌咱都爱！`
-  instance.play()
+const typing = new EasyTyper(obj, [`黎明前的黑暗是最深不见底的黑暗！`,`天下哪有真情在，只要够萌咱都爱！`, 'live for nothing, or die for something!'], (instance)=>{
+   // 回调函数，easyTyper生命周期结束后执行
+   console.log('结束了，我的使命！')
 }, (output, instance)=>{
-  // 钩子函数，每一帧的数据获取和实例easy-typer-js的获取
+  // 钩子函数，每一帧的数据获取和实例EasyTyper的获取
   document.getElementById('output').innerHTML = `${output}<span class="easy-typed-cursor">|</span>`
 })
 // 12秒后停止
@@ -147,5 +145,5 @@ let timer = setTimeout(() => {
 clearTimeout(timer)
 timer = null
 typing.close()
-alert('stop!')
+// alert('stop!')
 }, 120000)
