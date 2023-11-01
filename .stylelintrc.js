@@ -1,4 +1,4 @@
-// .stylelintrc.js
+// 样式规则配置文件
 module.exports = {
   // 继承的预设，这些预设包含了规则集插件
   extends: [

@@ -1,4 +1,4 @@
-// .lintstagedrc.js
+// 增量规则检查配置文件
 module.exports = {
   // 对于 js、ts 脚本文件，应用 eslint
   '**/*.{js,jsx,tsx,ts}': [

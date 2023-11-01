@@ -1,4 +1,4 @@
-// .prettierrc.js
+// 代码格式化工具规则配置文件
 module.exports = {
   // 一行最多字符
   printWidth: 100,
