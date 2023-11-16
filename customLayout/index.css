@@ -1,0 +1,65 @@
+.container {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 10px;
+  grid-template-areas: "h h h h h h h h h h h h"
+                        "c c c c c c c c c c c c"
+                        "f f f f f f f f f f f f";
+}
+
+.header {
+  grid-area: h;
+  height: 60px;
+  background-color: rgba(212, 222, 248, .8);
+}
+
+.content {
+  grid-area: c;
+  height: 450px;
+  background-color: rgba(212, 222, 248, .8);
+}
+
+.footer {
+  grid-area: f;
+  height: 160px;
+  background-color: rgba(212, 222, 248, .8);
+}
+
+.slider {
+  grid-area: s;
+  height: 60px;
+  display: none;
+  background-color: rgba(212, 222, 248, .8);
+}
+@media screen and (max-width: 600px) {
+  .container {
+    grid-template-areas: "h h h h h h h h h h h h"
+                        "c c c c c c c c c c c c"
+                        "f f f f f f f f f f f f";
+  }
+  .slider {
+    display: none;
+  }
+}
+@media screen and (min-width: 600px) {
+  .container {
+    grid-template-areas: "h h h h h h s s s s s s"
+                          "c c c c c c c c c c c c"
+                          "f f f f f f f f f f f f";
+  }
+  .slider {
+    display: block;
+  }
+}
+
+@media screen and (min-width: 800px){
+  .container {
+    grid-template-areas: "h h h h h h h h h h h h"
+                          "s s s s s s c c c c c c"
+                          "f f f f f f f f f f f f";
+  }
+  .slider {
+    height: 450px;
+    display: block;
+  }
+}

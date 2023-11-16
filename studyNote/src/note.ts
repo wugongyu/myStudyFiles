@@ -20,6 +20,7 @@ class StrategyPattern {
 
   constructor(config: EventBusConfigType) {
     this.config = { ...config };
+    this.strategyPatternHashMap = new Map();
   }
 
   /**
@@ -57,7 +58,7 @@ class StrategyPattern {
    * */
   getStrategyPattern(strategyPatternHashKey: StrategyPatternHashMapType, that?: any) {
     const stringifyKey = this.changeObjectToStringiFyKey(strategyPatternHashKey);
-    if (!this.strategyPatternHashMap[stringifyKey]) {
+    if (!this.strategyPatternHashMap.get(stringifyKey)) {
       // 触发默认兜底函数
       this.emit('default', '触发默认兜底函数');
       return;
@@ -65,6 +66,7 @@ class StrategyPattern {
     const strategyPatternHashValueFun = this.strategyPatternHashMap.get(stringifyKey);
     
     try {
+      if(!strategyPatternHashValueFun) return;
       if (that) {
         strategyPatternHashValueFun.bind(that);
       } else {
