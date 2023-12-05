@@ -1,5 +1,7 @@
 todoThings:
-  - css grid
-  - next and react
+  - css display grid @done
+  - css display flex @done
+  - next and react \Turbopack
   - nuxt and vue
   - vue 组件库
+  - typescript 

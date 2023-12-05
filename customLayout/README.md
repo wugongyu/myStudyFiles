@@ -18,8 +18,16 @@
   - <track-size>：可以是一个长度、一个百分比，或者使用 fr 单位表示网格中自由空间的一部分
   - <line-name>：一个你选择的任意的名字
 
-  - fr 
+  - fr关键字
+    fr为fraction 的缩写，意为"片段"
     fr可用空间,指的是非弹性项目之外的空间，它允许你将轨道的大小设置为网格容器自由空间的一部分。
     如：.container {
         grid-template-columns: 1fr 50px 1fr 1fr;
-      } // 其中fr 单位表示可用的空间指的是除50px之外的空间
+        grid-template-columns: repeat(3, 33.33%);
+      } 
+      // 其中fr 单位表示可用的空间指的是除50px之外的空间
+  - repeat()
+      // repeat()接受两个参数，第一个参数是重复的次数（上例是3），第二个参数是所要重复的值。
+
+## css flex布局
+[阮一峰flex布局](https://www.ruanyifeng.com/blog/2015/07/flex-grammar.html)
