@@ -2,6 +2,7 @@
 [Next.js了解篇](https://juejin.cn/post/7206261082452639802)
 [Next14](https://juejin.cn/post/7294954501575753743?searchId=20231205165912A0900489C42902404D90)
 [Next.js 项目最佳实践](https://juejin.cn/post/7194410416879960125?searchId=2023120515092940DC2F696A9EB0320570)
+[studyProject](https://github.com/zidanDirk/nextjs-fullstack-app-template-zn)
 
 ## Turbopack
 - turbopack--一款通过rust制作的快速打包工具，
@@ -18,4 +19,5 @@
   imports---Turbopack 支持 CommonJS、ESM， 部分支持 AMD
   原生支持jsx\tsx
 
-  生态不够完善，功能也不健全，目前只是服务于react框架
+  缺点： turbopack生态不够完善，功能也不健全，目前只是服务于react框架
+
