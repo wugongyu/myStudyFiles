@@ -21,3 +21,7 @@
 
   缺点： turbopack生态不够完善，功能也不健全，目前只是服务于react框架
 
+## next.js与storybook
+storybook相当于一个前端车间，用于独立构建ui组件和页面。
+它可以帮助我们开发难以到达的状态和边缘情况，而无需运行整个应用项目。
+[study link](https://storybook.js.org/docs/get-started/install)

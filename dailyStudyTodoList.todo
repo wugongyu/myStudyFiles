@@ -1,7 +1,15 @@
 todoThings:
   - css display grid @done
   - css display flex @done
-  - next and react \Turbopack
-  - nuxt and vue
+  - next and react \Turbopack @done
+  - next and storybook @done
+  - nuxt and vue 
   - vue 组件库
   - typescript 
+  - vite+vue3
+  - vue-cli (vue2,router,vuex/pinia,axios,elementui)
+  - node + express 
+  - node + nest
+nuxt是vue的服务端渲染框架，next是react服务端渲染框架，二者虽运行于服务端，但却是主要服务于前端框架的，说到底还是做前端的事。而nest是node做纯后端的框架，也就是写服务，直接操作数据库等，完全做服务端的事，包括前后不分离。
+
+
