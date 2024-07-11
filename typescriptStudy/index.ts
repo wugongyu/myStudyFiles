@@ -253,3 +253,110 @@ function isString(val: unknown): asserts val is string {
   // asserts 语句等同于返回类型为void，故返回值为除null,undefined类型以外的值会报错
   // return true; // error
 }
+
+//  模块
+// import type { A } from './moduleA';
+import { type A, a  } from './moduleA';
+const b: A = { foo: 'foo' };
+console.log(a, b)
+
+namespace N {
+  // 创建，内部非export形式的变量和函数，都只能在该容器内使用
+  const a = 1; // 只能内部使用
+  export function foo() {
+    console.log(a);
+  } // foo函数可在外部使用
+}
+
+N.foo();
+
+// ts装饰器
+function simpleDecorator(target: any,  context: any){
+  console.log('this is the decorator for', target);
+  // return target;
+}
+
+// 类在执行前会先执行装饰器，并且向装饰器自动传入参数
+// @simpleDecorator
+class MyClassA {
+  constructor(){}
+}
+
+type ClassMethodDecoratorContext = {
+  kind: string;
+  name: string | symbol;
+  addInitializer?(initializer: () => void): void;
+  static?: boolean;
+  private?: boolean;
+  access: {
+    get?(): unknown;
+    set?(value: unknown): void;
+  }
+}
+// 装饰器类型
+type Decorator = (value: any, context: ClassMethodDecoratorContext) => void | any;
+
+function countInstances(value: any, context: any) {
+  let instanceCount = 0;
+  const wrapper = function(...args: any[]){
+    instanceCount ++;
+    const instance = new value(...args);
+    instance.count = instanceCount;
+    return instance;
+  } as unknown as typeof MyCountClass
+  wrapper.prototype = value.prototype;
+  return wrapper;
+}
+
+// @countInstances
+class MyCountClass {
+
+}
+
+const c1 = new MyCountClass();
+console.log(c1 instanceof MyCountClass); // true
+console.log(c1.count); // 1
+
+// 方法修饰器
+function replaceMethod(){
+  return function() {
+    return `hi, ${this.name}`
+  }
+}
+
+class MyClassB {
+  name: string;
+  constructor(name) {
+    this.name = name;
+  }
+
+  // @replaceMethod
+  hello() {
+    return `${this.name}`
+  }
+}
+
+// 利用方法装饰器延时执行
+
+function delay(millisecond: number = 0) {
+  return function(value, context) {
+    if(context.kind === 'method') {
+      return function(...args: any[]) {
+        setTimeout(() => {
+          value.apply(this, args);
+        }, millisecond)
+      }
+    }
+  }
+}
+
+class logger {
+  constructor() {
+
+  }
+
+  // @delay(1000)
+  log(msg) {
+    console.log(msg)
+  }
+}

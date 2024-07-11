@@ -12,4 +12,8 @@ todoThings:
   - node + nest
 nuxt是vue的服务端渲染框架，next是react服务端渲染框架，二者虽运行于服务端，但却是主要服务于前端框架的，说到底还是做前端的事。而nest是node做纯后端的框架，也就是写服务，直接操作数据库等，完全做服务端的事，包括前后不分离。
 
+20240321Todo
+  - svg study（https://juejin.cn/post/7124312346947764260?searchId=202403211448073728EF9A87E1E2679D0E#heading-81）
+  - 
+
 
