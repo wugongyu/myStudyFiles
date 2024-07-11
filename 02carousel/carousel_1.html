@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>carousel--轮播图</title>    
+    <style>
+        body {
+            box-sizing: border-box;
+        }
+    
+        .carousel {
+            position: relative;
+            width: 400px;
+            height: 300px;
+            overflow: hidden;
+            margin: 20px auto;
+        }
+    
+        .carousel-board {
+            position: relative;
+            list-style: none;
+            width: 5000px;
+            height: 300px;
+            padding: 0;
+            left: 0;
+            /* transition: left 0.5s linear; */
+        }
+    
+        .carousel-board-item {
+            float: left;
+            width: 400px;
+            height: 300px;
+            line-height: 300px;
+            text-align: center;
+            font-size: 30px;
+        }
+    
+        .carousel-btn {
+            position: absolute;
+            z-index: 100;
+            cursor: pointer;
+            color: white;
+            font-size: 32px;
+        }
+    
+        .carousel-prev {
+            top: 50%;
+            left: 10px;
+            transform: translate(0, -20%);
+        }
+    
+        .carousel-next {
+            top: 50%;
+            right: 10px;
+            transform: translate(0, -20%);
+        }
+    
+        .carousel-dots {
+            padding: 0;
+            /* width: 100px; */
+            list-style: none;
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            margin-left: -24px;
+            z-index: 100;
+        }
+    
+        .carousel-dots li {
+            float: left;
+            width: 8px;
+            height: 8px;
+            background-color: #aaa;
+            margin-right: 4px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .carousel-dots .active-dot {
+            background-color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="carousel">
+        <ul class="carousel-board">
+            <!-- 分别在列表前后添加图片，以实现无缝轮播
+                具体思路为：
+                    页面：在第一张图前面添加最后一张图资源(fake last)，在最后一张图后边添加第一张图资源(fake first)，
+                    相关操作：
+                        1、列表向左移切换图片（右箭头切换），下标开始自增，同时left逐渐减小以实现左移。当下标为最后一张图（fake first）时，关闭切换动画，重新修正index且left值修改为第一张图片（true first）的left值
+                        2、列表向右移切换图片（左箭头切换），下标开始自减，同时left逐渐增加以实现右移。当下标为第一张图（fake last）时，关闭切换动画，重新修正index且left值修改为最后一张图片（true last）的left值
+                        3、自动轮播，页面加载后设置定时器，使其每间隔一秒使其向左切换图片
+
+            -->
+            <li class="carousel-board-item" style="background-color:rgb(188, 218, 188)">4(fake last)</li>
+            <li class="carousel-board-item" style="background-color:rgb(233, 199, 199)">1(true first)</li>
+            <li class="carousel-board-item" style="background-color:rgb(235, 235, 190)">2</li>
+            <li class="carousel-board-item" style="background-color:rgb(198, 198, 224)">3</li>
+            <li class="carousel-board-item" style="background-color:rgb(188, 218, 188)">4(true last)</li>
+            <li class="carousel-board-item" style="background-color:rgb(233, 199, 199)">1(fake first)</li>
+        </ul>
+        <span class="carousel-btn carousel-prev">&lt;</span>
+        <span class="carousel-btn carousel-next">&gt;</span>
+        <ul class="carousel-dots">
+            <li date-index="1" class="active-dot"></li>
+            <li date-index="2"></li>
+            <li date-index="3"></li>
+            <li date-index="4"></li>
+        </ul>
+    </div>
+    <script>
+       (function () {
+            let imgWidth = 400;
+            let timer = null;
+            let container = document.getElementsByClassName('carousel')[0];
+            let prev = document.getElementsByClassName("carousel-prev")[0];
+            let next = document.getElementsByClassName("carousel-next")[0];
+            let board = document.getElementsByClassName("carousel-board")[0];
+            let panels = Array.from(document.getElementsByClassName('carousel-board-item'));
+            let dotsList = document.querySelectorAll(".carousel-dots li");
+            board.style.left = "-400px";
+            let index = 1; //设置默认的index值
+            next.addEventListener("click", function () {
+                index++;
+                animate(-imgWidth, 'next');
+
+            })
+            prev.addEventListener("click", () => {
+                index--;
+                animate(imgWidth, 'prev');
+            })
+
+            function animate(width = 400, type = 'next') {
+                console.log(index, dotsList)
+                let targetTransition = "0.5s";
+                // board.style.left || (board.style.left = 0);
+                let currentLeft = parseInt(board.style.left) + width;
+                board.style.transition = targetTransition;
+                board.style.left = currentLeft + "px";
+                //关键点 如果当前图片列表右移且在 4fake（第一张图）的位置
+                if (type === 'prev' && index === 0) {
+                    setTimeout(() => {
+                        // 去掉动画
+                        board.style.transition = "0s";
+                        let distance = -(panels.length - 2) * imgWidth; // 倒数第二张图
+                        //将left的位置更新至4true的位置（重新从倒数第二张图开始向前轮播）
+                        board.style.left = parseInt(board.style.left) + distance + "px"
+                    }, 600)
+                    index = panels.length - 2;
+                }
+                //关键点 如果当前图片列表左移且在 1fake(最后一张图)的位置
+                if(type=== 'next' && index === panels.length - 1) {
+                    setTimeout(() => {
+                        // 去掉动画
+                        board.style.transition = "0s";
+                        let distance = (panels.length - 2) * imgWidth; // 第二张图的距离
+                        console.log(distance);
+                        //将left的位置更新至1true(第二张图)的距离的位置（重新从第二张图开始向后轮播）
+                        board.style.left = parseInt(board.style.left) + distance + "px"
+                    }, 600)
+                    index = 1;
+                }
+                changeDotsActiveClass(index);
+            }
+            
+            //自动轮播
+            function play() {
+                timer = setInterval(function () {
+                    setTimeout(function () {
+                        index++;
+                        animate(-imgWidth, 'next');
+                    }, 200)
+                }, 1500);
+            }
+
+            //鼠标点击对应小圆点：自动切换
+            function dotClick() {
+                for (var i = 0; i < dotsList.length; i++) {
+                    dotsList[i].onclick = function () {
+                        var myIndex = parseInt(this.getAttribute('date-index'));
+                        index = myIndex;
+                        animate(-imgWidth, 'next');
+                    }
+
+                }
+
+            }
+            dotClick()
+
+            function changeDotsActiveClass(targetIndex) {
+                for (var i = 0; i < dotsList.length; i++) {
+                    dotsList[i].className = i === targetIndex-1 ? 'active-dot' : '';
+                }
+            }
+
+            //当鼠标移动上去的时候:点击事件与轮播事件冲突
+            container.onmouseover = function () {
+                //清除定时器
+                clearInterval(timer);
+            }
+            container.onmouseout = function () {
+                play()
+            }
+            // 自动开始轮播
+            play()
+        })()
+    </script>
+</body>
+
+</html>

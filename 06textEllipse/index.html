@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>textEllipsis</title>
+  <style>
+    /* 1、单行文本省略 */
+    /* .textContainer p {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    } */
+    /* 2、多行文本省略 */
+    /* .textContainer{
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+      overflow: hidden;
+    } */
+    /* 3、兼容处理 */
+    /* .textContainer p{
+      position: relative;
+      line-height: 20px;
+      max-height: 40px;
+      overflow: hidden;
+    }
+    p::after{
+      content: "...";
+      position: absolute;
+      bottom: 0;
+      right: 0; 
+      padding-left: 40px;
+      background: -webkit-linear-gradient(left, transparent, #fff 55%);
+      background: -o-linear-gradient(right, transparent, #fff 55%);
+      background: -moz-linear-gradient(right, transparent, #fff 55%);
+      background: linear-gradient(to right, transparent, #fff 55%);
+    } */
+
+    /* 4、js + css实现多行文本省略 */
+    .textContainer p {
+      height: 5em;
+      width: 10em;
+      /* border: 2px; */
+    /*   box-sizing: border-box; */
+    
+      overflow: hidden;
+      text-overflow: ellipsis;
+      /* border: 2px solid red; */
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+  <div style="width: 200px;" class="textContainer">
+    <p>this is a long 1233 long long long long long long long long long long long long long long longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong long text</p>
+    <p>this is the second long long long long long long long long long long long long long long long longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong longlong long text</p>
+  </div>
+</body>
+<script>
+  /**
+   * 4、js实现文本省略
+   *  使用split + 正则表达式将单词与单个文字切割出来存入words
+      加上 '...'
+      判断scrollHeight与clientHeight，超出的话就从words中pop一个出来
+   * */
+  const p = document.querySelectorAll('.textContainer p');
+  [...p].forEach(el => {
+    let words = el.innerHTML.split(/(?<=[\u4e00-\u9fa5])|(?<=\w*?\b)/g);
+    while (el.scrollHeight > el.clientHeight) {
+      words.pop();
+      el.innerHTML = words.join('') + '...';
+    }
+  });
+</script>
+</html>
