@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>svg</title>
+</head>
+<body>
+  <svg width="300" height="300">
+    <!-- 圆形，cx,cy为圆心坐标，r为圆半径 -->
+    <!-- <circle cx="100" cy="100" r="100"></circle> -->
+
+    <!-- 矩形 x,y矩形起点坐标 rx，ry，x轴和y轴方向上的圆角半径 width，height矩形的宽高 -->
+    <!-- <rect x="0" y="0" rx="5" ry="5" width="100" height="100"></rect> -->
+
+    <!-- 椭圆 cx，cy椭圆圆心坐标 rx，ry椭圆x轴，y轴的半径长度 -->
+    <!-- <ellipse cx="100" cy="100" rx="100" ry="50"></ellipse> -->
+
+    <!-- 线条 x1,y1 x2,y2 分别为起点，终点坐标 -->
+    <!-- <line x1="50" y1="50" x2="50" y2="100" /> -->
+
+    <!-- 折线 points: 点集数列，每个点需包含x坐标、y坐标两个数字 polyline默认填充，当设置为不填充时需设置stroke样式-->
+    <!-- <polyline points="0 0, 10 20, 70 80, 60 20"  fill="none" style="stroke: #000000;"/> -->
+
+    <!-- 多边形 points: 点集数列，每个点需包含x坐标、y坐标两个数字，
+      不同于polyline，polygon的第一个点和最后一个点始终保持闭合 -->
+    <polygon points="0 0, 10 20, 70 80, 100 20" fill="none" style="stroke: #000000;"></polygon>
+    
+    <!-- 路径 d 一个点集数列以及其他绘制信息
+      属性d的值形式为： 命令 + 参数
+      命令：通常以关键字表示
+    -->
+    <!-- <path d="M50 50 H 200 V 200 H 50 L 50 50" fill="none" style="stroke: #000000;"></path> -->
+  </svg>
+</body>
+</html>
