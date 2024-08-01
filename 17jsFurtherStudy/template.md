@@ -1,172 +1,324 @@
-# JavaScript深入之作用域链
+# JavaScript深入之继承的多种方式和优缺点
 
->JavaScript深入系列第五篇，讲述作用链的创建过程，最后结合着变量对象，执行上下文栈，让我们一起捋一捋函数创建和执行的过程中到底发生了什么？
+> JavaScript深入系列第十五篇，讲解JavaScript各种继承方式和优缺点。
+ 
+## 写在前面
 
-## 前言
+本文讲解JavaScript各种继承方式和优缺点。
 
-在[《JavaScript深入之执行上下文栈》](https://github.com/mqyqingfeng/Blog/issues/4)中讲到，当JavaScript代码执行一段可执行代码(executable code)时，会创建对应的执行上下文(execution context)。
+但是注意：
 
-对于每个执行上下文，都有三个重要属性：
+这篇文章更像是笔记，哎，再让我感叹一句：《JavaScript高级程序设计》写得真是太好了！
 
-* 变量对象(Variable object，VO)
-* 作用域链(Scope chain)
-* this
+## 1.原型链继承
 
-今天重点讲讲作用域链。
+```js
+function Parent () {
+    this.name = 'kevin';
+}
 
-## 作用域链
+Parent.prototype.getName = function () {
+    console.log(this.name);
+}
 
-在[《JavaScript深入之变量对象》](https://github.com/mqyqingfeng/Blog/issues/5)中讲到，当查找变量的时候，会先从当前上下文的变量对象中查找，如果没有找到，就会从父级(词法层面上的父级)执行上下文的变量对象中查找，一直找到全局上下文的变量对象，也就是全局对象。这样由多个执行上下文的变量对象构成的链表就叫做作用域链。
+function Child () {
 
-下面，让我们以一个函数的创建和激活两个时期来讲解作用域链是如何创建和变化的。
+}
 
-## 函数创建
+Child.prototype = new Parent();
 
-在[《JavaScript深入之词法作用域和动态作用域》](https://github.com/mqyqingfeng/Blog/issues/3)中讲到，函数的作用域在函数定义的时候就决定了。
+var child1 = new Child();
 
-这是因为函数有一个内部属性 [[scope]]，当函数创建的时候，就会保存所有父变量对象到其中，你可以理解 [[scope]] 就是所有父变量对象的层级链，但是注意：[[scope]] 并不代表完整的作用域链！
+console.log(child1.getName()) // kevin
+```
+
+问题：
+
+1.引用类型的属性被所有实例共享，举个例子：
+
+```js
+function Parent () {
+    this.names = ['kevin', 'daisy'];
+}
+
+function Child () {
+
+}
+
+Child.prototype = new Parent();
+
+var child1 = new Child();
+
+child1.names.push('yayu');
+
+console.log(child1.names); // ["kevin", "daisy", "yayu"]
+
+var child2 = new Child();
+
+console.log(child2.names); // ["kevin", "daisy", "yayu"]
+```
+
+2.在创建 Child 的实例时，不能向Parent传参
+
+## 2.借用构造函数(经典继承)
+
+```js
+function Parent () {
+    this.names = ['kevin', 'daisy'];
+}
+
+function Child () {
+    Parent.call(this);
+}
+
+var child1 = new Child();
+
+child1.names.push('yayu');
+
+console.log(child1.names); // ["kevin", "daisy", "yayu"]
+
+var child2 = new Child();
+
+console.log(child2.names); // ["kevin", "daisy"]
+```
+
+优点：
+
+1.避免了引用类型的属性被所有实例共享
+
+2.可以在 Child 中向 Parent 传参
 
 举个例子：
 
 ```js
- 
-function foo() {
-    function bar() {
-        ...
+function Parent (name) {
+    this.name = name;
+}
+
+function Child (name) {
+    Parent.call(this, name);
+}
+
+var child1 = new Child('kevin');
+
+console.log(child1.name); // kevin
+
+var child2 = new Child('daisy');
+
+console.log(child2.name); // daisy
+```
+
+缺点：
+
+方法都在构造函数中定义，每次创建实例都会创建一遍方法。
+
+## 3.组合继承
+
+原型链继承和经典继承双剑合璧。
+
+```js
+function Parent (name) {
+    this.name = name;
+    this.colors = ['red', 'blue', 'green'];
+}
+
+Parent.prototype.getName = function () {
+    console.log(this.name)
+}
+
+function Child (name, age) {
+
+    Parent.call(this, name);
+    
+    this.age = age;
+
+}
+
+Child.prototype = new Parent();
+
+var child1 = new Child('kevin', '18');
+
+child1.colors.push('black');
+
+console.log(child1.name); // kevin
+console.log(child1.age); // 18
+console.log(child1.colors); // ["red", "blue", "green", "black"]
+
+var child2 = new Child('daisy', '20');
+
+console.log(child2.name); // daisy
+console.log(child2.age); // 20
+console.log(child2.colors); // ["red", "blue", "green"]
+```
+
+优点：融合原型链继承和构造函数的优点，是 JavaScript 中最常用的继承模式。
+
+## 4.原型式继承
+
+```js
+function createObj(o) {
+    function F(){}
+    F.prototype = o;
+    return new F();
+}
+```
+
+就是 ES5 Object.create 的模拟实现，将传入的对象作为创建的对象的原型。
+
+缺点：
+
+包含引用类型的属性值始终都会共享相应的值，这点跟原型链继承一样。
+
+```js
+var person = {
+    name: 'kevin',
+    friends: ['daisy', 'kelly']
+}
+
+var person1 = createObj(person);
+var person2 = createObj(person);
+
+person1.name = 'person1';
+console.log(person2.name); // kevin
+
+person1.firends.push('taylor');
+console.log(person2.friends); // ["daisy", "kelly", "taylor"]
+```
+
+注意：修改`person1.name`的值，`person2.name`的值并未发生改变，并不是因为`person1`和`person2`有独立的 name 值，而是因为`person1.name = 'person1'`，给`person1`添加了 name 值，并非修改了原型上的 name 值。
+
+## 5. 寄生式继承
+
+创建一个仅用于封装继承过程的函数，该函数在内部以某种形式来做增强对象，最后返回对象。
+
+```js
+function createObj (o) {
+    var clone = object.create(o);
+    clone.sayName = function () {
+        console.log('hi');
     }
-}
-
-```
-
-函数创建时，各自的[[scope]]为：
-
-```js
-
-foo.[[scope]] = [
-  globalContext.VO
-];
-
-bar.[[scope]] = [
-    fooContext.AO,
-    globalContext.VO
-];
-
-```
-
-## 函数激活
-
-当函数激活时，进入函数上下文，创建 VO/AO 后，就会将活动对象添加到作用链的前端。
-
-这时候执行上下文的作用域链，我们命名为 Scope：
-
-```js
-
-Scope = [AO].concat([[Scope]]);
-
-```
-
-至此，作用域链创建完毕。
-
-## 捋一捋
-
-以下面的例子为例，结合着之前讲的变量对象和执行上下文栈，我们来总结一下函数执行上下文中作用域链和变量对象的创建过程：
-
-```js
-var scope = "global scope";
-function checkscope(){
-    var scope2 = 'local scope';
-    return scope2;
-}
-checkscope();
-```
-
-执行过程如下：
-
-1.checkscope 函数被创建，保存作用域链到 内部属性[[scope]]
-
-```js
-checkscope.[[scope]] = [
-    globalContext.VO
-];
-```
-
-2.执行 checkscope 函数，创建 checkscope 函数执行上下文，checkscope 函数执行上下文被压入执行上下文栈
-
-```js
-ECStack = [
-    checkscopeContext,
-    globalContext
-];
-```
-
-3.checkscope 函数并不立刻执行，开始做准备工作，第一步：复制函数[[scope]]属性创建作用域链
-
-```js
-checkscopeContext = {
-    Scope: checkscope.[[scope]],
+    return clone;
 }
 ```
 
-4.第二步：用 arguments 创建活动对象，随后初始化活动对象，加入形参、函数声明、变量声明
+缺点：跟借用构造函数模式一样，每次创建对象都会创建一遍方法。
+
+## 6. 寄生组合式继承
+
+为了方便大家阅读，在这里重复一下组合继承的代码：
 
 ```js
-checkscopeContext = {
-    AO: {
-        arguments: {
-            length: 0
-        },
-        scope2: undefined
-    }
+function Parent (name) {
+    this.name = name;
+    this.colors = ['red', 'blue', 'green'];
 }
-```
 
-5.第三步：将活动对象压入 checkscope 作用域链顶端
-
-```js
-checkscopeContext = {
-    AO: {
-        arguments: {
-            length: 0
-        },
-        scope2: undefined
-    },
-    Scope: [AO, [[Scope]]]
+Parent.prototype.getName = function () {
+    console.log(this.name)
 }
-```
 
-6.准备工作做完，开始执行函数，随着函数的执行，修改 AO 的属性值
-
-```js
-checkscopeContext = {
-    AO: {
-        arguments: {
-            length: 0
-        },
-        scope2: 'local scope'
-    },
-    Scope: [AO, [[Scope]]]
+function Child (name, age) {
+    Parent.call(this, name);
+    this.age = age;
 }
+
+Child.prototype = new Parent();
+
+var child1 = new Child('kevin', '18');
+
+console.log(child1)
 ```
 
-7.查找到 scope2 的值，返回后函数执行完毕，函数上下文从执行上下文栈中弹出
+组合继承最大的缺点是会调用两次父构造函数。
+
+一次是设置子类型实例的原型的时候：
 
 ```js
-ECStack = [
-    globalContext
-];
+Child.prototype = new Parent();
 ```
 
-## 下一篇文章
+一次在创建子类型实例的时候：
 
-[《JavaScript深入之从ECMAScript规范解读this》](https://github.com/mqyqingfeng/Blog/issues/7)
+```js
+var child1 = new Child('kevin', '18');
+```
 
-## 本文相关链接
+回想下 new 的模拟实现，其实在这句中，我们会执行：
 
-[《JavaScript深入之词法作用域和动态作用域》](https://github.com/mqyqingfeng/Blog/issues/3)
+```js
+Parent.call(this, name);
+```
 
-[《JavaScript深入之执行上下文栈》](https://github.com/mqyqingfeng/Blog/issues/4)
+在这里，我们又会调用了一次 Parent 构造函数。
 
-[《JavaScript深入之变量对象》](https://github.com/mqyqingfeng/Blog/issues/5)
+所以，在这个例子中，如果我们打印 child1 对象，我们会发现 Child.prototype 和 child1 都有一个属性为`colors`，属性值为`['red', 'blue', 'green']`。
+
+那么我们该如何精益求精，避免这一次重复调用呢？
+
+如果我们不使用 Child.prototype = new Parent() ，而是间接的让 Child.prototype 访问到 Parent.prototype 呢？
+
+看看如何实现：
+
+```js
+function Parent (name) {
+    this.name = name;
+    this.colors = ['red', 'blue', 'green'];
+}
+
+Parent.prototype.getName = function () {
+    console.log(this.name)
+}
+
+function Child (name, age) {
+    Parent.call(this, name);
+    this.age = age;
+}
+
+// 关键的三步
+var F = function () {};
+
+F.prototype = Parent.prototype;
+
+Child.prototype = new F();
+
+
+var child1 = new Child('kevin', '18');
+
+console.log(child1);
+```
+
+最后我们封装一下这个继承方法：
+
+```js
+function object(o) {
+    function F() {}
+    F.prototype = o;
+    return new F();
+}
+
+function prototype(child, parent) {
+    var prototype = object(parent.prototype);
+    prototype.constructor = child;
+    child.prototype = prototype;
+}
+
+// 当我们使用的时候：
+prototype(Child, Parent);
+```
+
+引用《JavaScript高级程序设计》中对寄生组合式继承的夸赞就是：
+
+这种方式的高效率体现它只调用了一次 Parent 构造函数，并且因此避免了在 Parent.prototype 上面创建不必要的、多余的属性。与此同时，原型链还能保持不变；因此，还能够正常使用 instanceof 和 isPrototypeOf。开发人员普遍认为寄生组合式继承是引用类型最理想的继承范式。
+
+## 相关链接
+
+[《JavaScript深入之从原型到原型链》](https://github.com/mqyqingfeng/Blog/issues/2)
+
+[《JavaScript深入之call和apply的模拟实现》](https://github.com/mqyqingfeng/Blog/issues/11)
+
+[《JavaScript深入之new的模拟实现》](https://github.com/mqyqingfeng/Blog/issues/13)
+
+[《JavaScript深入之创建对象》](https://github.com/mqyqingfeng/Blog/issues/15)
 
 ## 深入系列
 
