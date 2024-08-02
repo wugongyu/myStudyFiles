@@ -464,7 +464,7 @@
       2. 在代码中引用了自由变量
 
 ## 九. 参数的按值传递
-    1. 参数传递类型
+  - 1.参数传递类型
       1. 按值传递
       把函数外部的值复制给函数内部的参数
       2. 引用传递？
@@ -472,7 +472,7 @@
       引用传递其实也是按值传递，只是值是指针地址。
       3. 共享传递
       共享传递是指，在传递对象的时候，传递对象的引用的副本。
-    【注意】**按引用传递是传递对象的引用，而按共享传递是传递对象的引用的副本！**
+      【注意】**按引用传递是传递对象的引用，而按共享传递是传递对象的引用的副本！**
 
   参数如果是基本类型是按值传递，如果是引用类型按共享传递。
 
@@ -489,45 +489,45 @@
   newFun.apply(obj, [param1, param2, ...otherParams]);
 
 ## 十一. bind
-  1. bind 方法
+  - 1.bind 方法
   bind() 方法会创建一个新函数。当这个新函数被调用时，bind() 的第一个参数将作为它运行时的 this，之后的一序列参数将会在传递的实参前传入作为它的参数。
 
-  2. bind 方法特点
+  - 2.bind 方法特点
     1. 返回一个函数
     2. 可以传入参数
     3. 一个绑定函数也能使用new操作符创建对象：这种行为就像把原函数当成构造器。提供的 this 值被忽略，同时调用时的参数被提供给模拟函数。
     即当 bind 返回的函数作为构造函数的时候，bind 时指定的 this 值会失效，但传入的参数依然生效。
 
 ## 十二.new
-  1. new 运算符
+  - 1.new 运算符
   new 运算符创建一个用户定义的对象类型的实例或具有构造函数的内置对象类型之一。
   创建的实例对象：
     1. 可以访问构造函数里的属性。
     2. 可以访问构造函数原型中的属性。
 
 
-  2. 几点注意
+  - 2.几点注意
     1. 在构造函数中返回了一个对象，实例只能访问返回的对象中的属性。
     2. 在构造函数中返回了一个基本类型的值，会当作没有返回值进行处理。
 
 ## 十三. 类数组对象与arguments
   1. 类数组对象
-  拥有一个length属性和若干索引属性的对象。
-  类数组无法直接调用数组方法，如需要调用，可以通过Array.prototype[方法名].call(arrayLike)
+    拥有一个length属性和若干索引属性的对象。
+    类数组无法直接调用数组方法，如需要调用，可以通过Array.prototype[方法名].call(arrayLike)
 
   2. Arguments对象
   Arguments对象就是类数组对象。
 
   arguments对象只定义在函数体中，包括函数的参数和其他属性，在函数体中，arguments对象指代Arguments对象
-    - length属性
-      表示实参的长度
-    - callee属性
-      通过callee可以调用函数自身
-    - arguments和对应参数的绑定
+  - length属性
+    表示实参的长度
+  - callee属性
+    通过callee可以调用函数自身
+  - arguments和对应参数的绑定
     传入的参数，实参和 arguments 的值会共享，当没有传入时，实参与 arguments 值不会共享
     除此之外，以上是在非严格模式下，如果是在严格模式下，实参和 arguments 是不会共享的。
 
-    - 使用es6三点运算符（...）能将arguments转成数组
+  - 使用es6三点运算符（...）能将arguments转成数组
 
   ## 十四. 创建对象方式
   1. 工厂模式
@@ -550,3 +550,131 @@
   6. 寄生组合式继承
 
 
+  ## 十六. 浮点数精度
+    `
+    0.1 + 0.2 !== 0.3;
+    `
+
+  1. 浮点数的存储
+    【注意】0.1转为二进制时是一个无限循环的数
+    ecmascript使用64位存储浮点数。
+    存储标准为，一个浮点数可以这样表示：
+    Value = sign * exponent * fraction
+    在这个标准下：
+    **会用 1 位存储 S，0 表示正数，1 表示负数。**
+    **用 11 位存储 E + bias**，对于 11 位来说，bias 的值是 2^(11-1) - 1，也就是 1023。
+    **用 52 位存储 Fraction。**
+    举个例子，就拿 0.1 来看，对应二进制是 1 * 1.1001100110011…… * 2^-4， Sign 是 0，E + bias 是 -4 + 1023 = 1019，1019 用二进制表示是 1111111011，Fraction 是 1001100110011……
+    【结论】当0.1、0.2在存储的时候已经发生了精度丢失了
+
+  2. 浮点数的计算
+    关于浮点数的运算，一般由以下五个步骤完成：对阶、尾数运算、规格化、舍入处理、溢出判断。
+    【结论】两次存储时的精度丢失加上一次计算时的精度丢失，导致 0.1 + 0.2 !== 0.3
+
+  ## 十七. 类型转换
+  - 1.原始值转布尔
+  使用Boolean函数将类型转换为布尔类型。
+    - Boolean函数不传参时，返回false
+    - 除了传入以下六种数据会返回false，其余情况返回true
+      null undefined false 0 NaN ''
+
+  - 2.原始值转数字
+    - 使用Number函数将类型转换为数字，传入参数不可转换时返回NaN。
+      Number函数若有参数，则会调用底层规范方法（不直接暴露）ToNumber方法来进行转换处理。
+      ToNumber结果对应表：
+      参数类型  | 结果
+      :---:|:---:
+      不传参 | +0
+      undefined | NaN
+      null|+0
+      boolean|false返回0，true返回1
+      number|返回与之对应的值
+      string|Number函数试图将传入的string类型的值转换为整型或浮点型，且忽略所有前导0，若有一个不是数字，则返回NaN
+    - 还可使用parseInt（整数） parseFloat（整数、浮点数）进行转换
+      parseInt可将前缀为0x|oX的转换为十六进制数。
+      parseInt parseFloat会跳过任意数量的前导空格，
+      如果字符串第一个字符为非法的数字字面量，返回NaN。
+
+  - 3.原始值转字符串
+    使用String函数进行类型转换。
+    传有参数时，会调用ToString(value)方法进行转换
+
+    ToString结果对应表：
+
+    参数类型 | 结果
+    :----:|:----------------:
+    不传参| 返回空字符串
+    undefined | undefined
+    null | null
+    boolean | 传入true 返回 'true'，传入false 返回 'false'
+    string | 返回与之对应的值
+    number | 复杂情况看下面的例子
+    | - | console.log(String(-0)); // 0 
+    | - | console.log(String(0)); // 0
+    | - | console.log(String(Infinity)); // Infinity
+    | - | console.log(String(-Infinity)); // -Infinity
+    | - | console.log(String(122244)); // 122244
+    | - | console.log(String(NaN)); // NaN
+
+  - 4.原始值转对象
+  原始值通过调用 String()、Number() 或者 Boolean() 构造函数，转换为它们各自的包装对象。
+  null 与 undefined例外。
+
+  - 5.对象转布尔值
+  所有对象（包括函数，数组）转为布尔值结果都为true。
+
+  - 6.对象转字符串和数字
+    对象转换为字符串，对象转换为数字都是通过调用带转换对象的一个方法来实现的。JavaScript 对象有两个不同的方法来执行转换，一个是 toString，一个是 valueOf，它们与前面的ToString和ToNumber方法不同的是，它们是暴露出来的方法。
+    - **toString方法**
+      1. 数组的 toString 方法将每个数组元素转换成一个字符串，并在元素之间添加逗号后合并成结果字符串。
+      2. 函数的 toString 方法返回源代码字符串。
+      3. 日期的 toString 方法返回一个可读的日期和时间字符串。
+      4. RegExp 的 toString 方法返回一个表示正则表达式直接量的字符串。
+
+
+    - **valueOf方法**
+      valueOf，表示对象的原始值。默认的 valueOf 方法返回这个对象本身，数组、函数、正则简单的继承了这个默认方法，也会返回对象本身。日期是一个例外，它会返回它的一个内容表示: 1970 年 1 月 1 日以来的毫秒数。
+  
+  - 7.对象转字符串和数字（ ToPrimitive）
+    - ToPrimitive函数语法
+      `
+      ToPrimitive(input[, PreferredType])
+      `
+    - 具体参数
+      1. 第一个参数是 input，表示要处理的输入值。
+
+      2. 第二个参数是 PreferredType，非必填，表示希望转换成的类型，有两个值可以选，Number 或者 String。
+        当不传入 PreferredType 时，如果 input 是日期类型，相当于传入 String，否则，都相当于传入 Number。
+
+        如果传入的 input 是 Undefined、Null、Boolean、Number、String 类型，直接返回该值。
+
+    - ToPrimitive(obj, Number)，处理步骤如下：
+
+      1. 如果 obj 为 基本类型，直接返回
+      2. 否则，调用 valueOf 方法，如果返回一个原始值，则 JavaScript 将其返回。
+      3. 否则，调用 toString 方法，如果返回一个原始值，则 JavaScript 将其返回。
+      4. 否则，JavaScript 抛出一个类型错误异常。
+    - 如果是 ToPrimitive(obj, String)，处理步骤如下：
+
+      1. 如果 obj为 基本类型，直接返回
+      2. 否则，调用 toString 方法，如果返回一个原始值，则 JavaScript 将其返回。
+      3. 否则，调用 valueOf 方法，如果返回一个原始值，则 JavaScript 将其返回。
+      4. 否则，JavaScript 抛出一个类型错误异常。
+
+  - 8.总结
+    - 对象转字符串
+      1. 如果对象具有 toString 方法，则调用这个方法。如果他返回一个原始值，JavaScript 将这个值转换为字符串，并返回这个字符串结果。
+      2. 如果对象没有 toString 方法，或者这个方法并不返回一个原始值，那么 JavaScript 会调用 valueOf 方法。如果存在这个方法，则 JavaScript 调用它。如果返回值是原始值，JavaScript 将这个值转换为字符串，并返回这个字符串的结果。
+      3. 否则，JavaScript 无法从 toString 或者 valueOf 获得一个原始值，这时它将抛出一个类型错误异常。
+    - 对象转数字
+      1. 如果对象具有 valueOf 方法，且返回一个原始值，则 JavaScript 将这个原始值转换为数字并返回这个数字
+      2. 否则，如果对象具有 toString 方法，且返回一个原始值，则 JavaScript 将其转换并返回。
+      3. 否则，JavaScript 抛出一个类型错误异常。
+
+  - 9.JSON.stringify
+    JSON.stringify() 方法可以将一个 JavaScript 值转换为一个 JSON 字符串，实现上也是调用了 toString 方法，也算是一种类型转换的方法
+    1. 处理基本类型时，与使用toString基本相同，结果都是字符串，除了 undefined
+    2. 布尔值、数字、字符串的包装对象在序列化过程中会自动转换成对应的原始值
+    3. undefined、任意的函数以及 symbol 值，在序列化过程中会被忽略（出现在非数组对象的属性值中时）或者被转换成 null（出现在数组中时）。
+    4. JSON.stringify 有第二个参数 replacer，它可以是数组或者函数，用来指定对象序列化过程中哪些属性应该被处理，哪些应该被排除。
+    5. 如果一个被序列化的对象拥有 toJSON 方法，那么该 toJSON 方法就会覆盖该对象默认的序列化行为：不是那个对象被序列化，而是调用 toJSON 方法后的返回值会被序列化。

@@ -385,6 +385,16 @@ prototype(ChildCombineOpt, ParentCombineOpt);
 var optChild = new ChildCombineOpt('optChild', 11);
 console.log(optChild)
 
+console.log(String(-0)); // 0
+console.log(String(0)); // 0
+console.log(String(Infinity)); // Infinity
+console.log(String(-Infinity)); // -Infinity
+console.log(String(122244)); // 122244
+console.log(String(NaN)); // NaN
+
+
+
+
 
 
 
