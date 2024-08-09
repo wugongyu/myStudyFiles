@@ -317,6 +317,8 @@ console.log(child12.name + '--child12');
 
 // 组合继承
 
+
+
 function ParentCombine(name) {
   this.name = name;
   this.colors = ['red', 'green', 'blue'];
@@ -391,6 +393,29 @@ console.log(String(Infinity)); // Infinity
 console.log(String(-Infinity)); // -Infinity
 console.log(String(122244)); // 122244
 console.log(String(NaN)); // NaN
+console.log(typeof String(NaN)); // string
+
+
+
+console.log([1, 2, 3].toString());
+
+console.log((new Date()).valueOf());
+
+
+console.log(new Date(2024, 04, 22) + 1);// Wed May 22 2024 00:00:00 GMT+0800 (中国标准时间)1
+
+console.log(null == undefined); // true
+
+console.log("" == [null])// true [null].toString() 
+console.log([null].toString(), '[null].toString() '); // ''
+
+console.log(0 == "\n")// true
+console.log([] == 0)// true
+console.log(Number('\n')); // 0  umber转换的时候会忽略所有前导的 0和前序的空格 换行符（\n）相当于是空格
+
+
+
+
 
 
 

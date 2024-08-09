@@ -624,7 +624,7 @@
   所有对象（包括函数，数组）转为布尔值结果都为true。
 
   - 6.对象转字符串和数字
-    对象转换为字符串，对象转换为数字都是通过调用带转换对象的一个方法来实现的。JavaScript 对象有两个不同的方法来执行转换，一个是 toString，一个是 valueOf，它们与前面的ToString和ToNumber方法不同的是，它们是暴露出来的方法。
+    对象转换为字符串，对象转换为数字都是通过调用待转换对象的一个方法来实现的。JavaScript 对象有两个不同的方法来执行转换，一个是 toString，一个是 valueOf，它们与前面的ToString和ToNumber方法不同的是，它们是暴露出来的方法。
     - **toString方法**
       1. 数组的 toString 方法将每个数组元素转换成一个字符串，并在元素之间添加逗号后合并成结果字符串。
       2. 函数的 toString 方法返回源代码字符串。
@@ -636,6 +636,12 @@
       valueOf，表示对象的原始值。默认的 valueOf 方法返回这个对象本身，数组、函数、正则简单的继承了这个默认方法，也会返回对象本身。日期是一个例外，它会返回它的一个内容表示: 1970 年 1 月 1 日以来的毫秒数。
   
   - 7.对象转字符串和数字（ ToPrimitive）
+    - 总结
+      **当用 String|Number 方法转化一个值的时候，如果是基本类型，就参照 “原始值转字符” | “原始值转数字” 这一节的对应表，如果不是基本类型，会将调用一个 ToPrimitive 方法，将其转为基本类型，然后再参照“原始值转字符” | “原始值转数字” 这一节的对应表进行转换**。
+      |参数类型|结果|
+      |:---:|:------:|
+      |Object| 1.primValue = ToPrimitive(input, String); 2.返回ToString(primValue)|
+      |Object| 1.primValue = ToPrimitive(input, Number); 2.返回ToNumber(primValue)|
     - ToPrimitive函数语法
       `
       ToPrimitive(input[, PreferredType])
@@ -678,3 +684,46 @@
     3. undefined、任意的函数以及 symbol 值，在序列化过程中会被忽略（出现在非数组对象的属性值中时）或者被转换成 null（出现在数组中时）。
     4. JSON.stringify 有第二个参数 replacer，它可以是数组或者函数，用来指定对象序列化过程中哪些属性应该被处理，哪些应该被排除。
     5. 如果一个被序列化的对象拥有 toJSON 方法，那么该 toJSON 方法就会覆盖该对象默认的序列化行为：不是那个对象被序列化，而是调用 toJSON 方法后的返回值会被序列化。
+
+  - 10.一元操作符+
+    **当 + 运算符作为一元操作符的时候，会调用 ToNumber 处理该值。**
+    调用 ToNumber 方法，当输入的值是对象的时候，先调用 ToPrimitive(input,  Number) 方法，执行的步骤是：
+    1. 如果 obj 为基本类型，直接返回
+    2. 否则，调用 valueOf 方法，如果返回一个原始值，则 JavaScript 将其返回。
+    3. 否则，调用 toString 方法，如果返回一个原始值，则JavaScript 将其返回。
+    4. 否则，JavaScript 抛出一个类型错误异常。
+
+  - 11.二元操作符+
+    当计算 value1 + value2时：
+    1. lprim = ToPrimitive(value1)
+    2. rprim = ToPrimitive(value2)
+    3. 如果 lprim 是字符串或者 rprim 是字符串，那么返回 ToString(lprim) 和 ToString(rprim)的拼接结果
+    4. 否则，返回 ToNumber(lprim) 和 ToNumber(rprim)的运算结果
+
+  - 12.==相等
+  "==" 用于比较两个值是否相等，当要比较的两个值类型不一样的时候，就会发生类型的转换。
+  【注意】全等运算符（===）需要类型且值均相等时才会返回true
+  当执行x == y 时：
+  1. 如果x与y是同一类型：
+      1. x是Undefined，返回true
+      2. x是Null，返回true
+      3. x是数字：
+            1. x是NaN，返回false
+            2. y是NaN，返回false
+            3. x与y相等，返回true
+            4. x是+0，y是-0，返回true
+            5. x是-0，y是+0，返回true
+            6. 返回false
+      4. x是字符串，完全相等返回true,否则返回false
+      5. x是布尔值，x和y都是true或者false，返回true，否则返回false
+      6. x和y指向同一个对象，返回true，否则返回false
+  2. x是null并且y是undefined，返回true
+  3. x是undefined并且y是null，返回true
+  4. x是数字，y是字符串，判断x == ToNumber(y)
+  5. x是字符串，y是数字，判断ToNumber(x) == y
+  6. x是布尔值，判断ToNumber(x) == y
+  7. y是布尔值，判断x ==ToNumber(y)
+  8. x是字符串或者数字，y是对象，判断x == ToPrimitive(y)
+  9. x是对象，y是字符串或者数字，判断ToPrimitive(x) == y
+  10. 返回false
+
