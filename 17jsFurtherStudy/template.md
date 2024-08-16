@@ -1,441 +1,615 @@
-# JavaScript专题之从零实现jQuery的extend
+# JavaScript专题之如何判断两个对象相等
 
 ## 前言
 
-jQuery 的 extend 是 jQuery 中应用非常多的一个函数，今天我们一边看 jQuery 的 extend 的特性，一边实现一个 extend!
+虽然标题写的是如何判断两个对象相等，但本篇我们不仅仅判断两个对象相等，实际上，我们要做到的是如何判断两个参数相等，而这必然会涉及到多种类型的判断。
 
-## extend 基本用法
+## 相等
 
-先来看看 extend 的功能，引用 jQuery 官网：
+什么是相等？在[《JavaScript专题之去重》](https://github.com/mqyqingfeng/Blog/issues/27)中，我们认为只要 `===` 的结果为 true，两者就相等，然而今天我们重新定义相等：
 
-> Merge the contents of two or more objects together into the first object.
+我们认为：
 
-翻译过来就是，合并两个或者更多的对象的内容到第一个对象中。
+1. NaN 和 NaN 是相等
+2. [1] 和 [1] 是相等
+3. {value: 1} 和 {value: 1} 是相等
 
-让我们看看 extend 的用法：
+不仅仅是这些长得一样的，还有
+
+1. 1 和 new Number(1) 是相等
+2. 'Curly' 和 new String('Curly') 是相等
+3. true 和 new Boolean(true) 是相等
+
+更复杂的我们会在接下来的内容中看到。
+
+## 目标
+
+我们的目标是写一个 eq 函数用来判断两个参数是否相等，使用效果如下：
 
 ```js
-jQuery.extend( target [, object1 ] [, objectN ] )
+function eq(a, b) { ... }
+
+var a = [1];
+var b = [1];
+console.log(eq(a, b)) // true
 ```
 
-第一个参数 target，表示要拓展的目标，我们就称它为目标对象吧。
+在写这个看似很简单的函数之前，我们首先了解在一些简单的情况下是如何判断的？
 
-后面的参数，都传入对象，内容都会复制到目标对象中，我们就称它们为待复制对象吧。
+## +0 与 -0
 
-举个例子：
+如果 a === b 的结果为 true， 那么 a 和 b 就是相等的吗？一般情况下，当然是这样的，但是有一个特殊的例子，就是 +0 和 -0。
+
+JavaScript “处心积虑”的想抹平两者的差异：
 
 ```js
-var obj1 = {
-    a: 1,
-    b: { b1: 1, b2: 2 }
-};
+// 表现1
+console.log(+0 === -0); // true
 
-var obj2 = {
-    b: { b1: 3, b3: 4 },
-    c: 3
-};
+// 表现2
+(-0).toString() // '0'
+(+0).toString() // '0'
 
-var obj3 = {
-    d: 4
+// 表现3
+-0 < +0 // false
++0 < -0 // false
+```
+
+即便如此，两者依然是不同的：
+
+```js
+1 / +0 // Infinity
+1 / -0 // -Infinity
+
+1 / +0 === 1 / -0 // false
+```
+
+也许你会好奇为什么要有 +0 和 -0 呢？
+
+这是因为 JavaScript 采用了IEEE_754 浮点数表示法(几乎所有现代编程语言所采用)，这是一种二进制表示法，按照这个标准，最高位是符号位(0 代表正，1 代表负)，剩下的用于表示大小。而对于零这个边界值 ，1000(-0) 和 0000(0)都是表示 0 ，这才有了正负零的区别。
+
+也许你会好奇什么时候会产生 -0 呢？
+
+```js
+Math.round(-0.1) // -0
+```
+
+那么我们又该如何在 === 结果为 true 的时候，区别 0 和 -0 得出正确的结果呢？我们可以这样做：
+
+```js
+function eq(a, b){
+    if (a === b) return a !== 0 || 1 / a === 1 / b;
+    return false;
 }
 
-console.log($.extend(obj1, obj2, obj3));
-
-// {
-//    a: 1,
-//    b: { b1: 3, b3: 4 },
-//    c: 3,
-//    d: 4
-// }
+console.log(eq(0, 0)) // true
+console.log(eq(0, -0)) // false
 ```
 
-当两个对象出现相同字段的时候，后者会覆盖前者，而不会进行深层次的覆盖。
+## NaN
 
-## extend 第一版
-
-结合着上篇写得 [《JavaScript专题之深浅拷贝》](https://github.com/mqyqingfeng/Blog/issues/32)，我们尝试着自己写一个 extend 函数：
+在本篇，我们认为 NaN 和 NaN 是相等的，那又该如何判断出 NaN 呢？
 
 ```js
-// 第一版
-function extend() {
-    var name, options, copy;
-    var length = arguments.length;
-    var i = 1;
-    var target = arguments[0];
+console.log(NaN === NaN); // false
+```
 
-    for (; i < length; i++) {
-        options = arguments[i];
-        if (options != null) {
-            for (name in options) {
-                copy = options[name];
-                if (copy !== undefined){
-                    target[name] = copy;
-                }
-            }
+利用 NaN 不等于自身的特性，我们可以区别出 NaN，那么这个 eq 函数又该怎么写呢？
+
+```js
+function eq(a, b) {
+    if (a !== a) return b !== b;
+}
+
+console.log(eq(NaN, NaN)); // true
+```
+
+## eq 函数
+
+现在，我们已经可以去写 eq 函数的第一版了。
+
+```js
+// eq 第一版
+// 用来过滤掉简单的类型比较，复杂的对象使用 deepEq 函数进行处理
+function eq(a, b) {
+
+    // === 结果为 true 的区别出 +0 和 -0
+    if (a === b) return a !== 0 || 1 / a === 1 / b;
+
+    // typeof null 的结果为 object ，这里做判断，是为了让有 null 的情况尽早退出函数
+    if (a == null || b == null) return false;
+
+    // 判断 NaN
+    if (a !== a) return b !== b;
+
+    // 判断参数 a 类型，如果是基本类型，在这里可以直接返回 false
+    var type = typeof a;
+    if (type !== 'function' && type !== 'object' && typeof b != 'object') return false;
+
+    // 更复杂的对象使用 deepEq 函数进行深度比较
+    return deepEq(a, b);
+};
+```
+
+也许你会好奇是不是少了一个 `typeof b !== function`?
+
+试想如果我们添加上了这句，当 a 是基本类型，而 b 是函数的时候，就会进入 deepEq 函数，而去掉这一句，就会进入直接进入 false，实际上 基本类型和函数肯定是不会相等的，所以这样做代码又少，又可以让一种情况更早退出。
+
+## String 对象
+
+现在我们开始写 deepEq 函数，一个要处理的重大难题就是 'Curly' 和 new String('Curly') 如何判断成相等？
+
+两者的类型都不一样呐！不信我们看 typeof 的操作结果：
+
+```js
+console.log(typeof 'Curly'); // string
+console.log(typeof new String('Curly')); // object
+```
+
+可是我们在[《JavaScript专题之类型判断上》](https://github.com/mqyqingfeng/Blog/issues/28)中还学习过更多的方法判断类型，比如 Object.prototype.toString：
+
+```js
+var toString = Object.prototype.toString;
+toString.call('Curly'); // "[object String]"
+toString.call(new String('Curly')); // "[object String]"
+```
+
+神奇的是使用 toString 方法两者判断的结果却是一致的，可是就算知道了这一点，还是不知道如何判断字符串和字符串包装对象是相等的呢？
+
+那我们利用隐式类型转换呢？
+
+```js
+console.log('Curly' + '' === new String('Curly') + ''); // true
+```
+
+看来我们已经有了思路：如果 a 和 b 的 Object.prototype.toString的结果一致，并且都是"[object String]"，那我们就使用 '' + a === '' + b 进行判断。
+
+可是不止有 String 对象呐，Boolean、Number、RegExp、Date呢？
+
+## 更多对象
+
+跟 String 同样的思路，利用隐式类型转换。
+
+**Boolean**
+
+```js
+var a = true;
+var b = new Boolean(true);
+
+console.log(+a === +b) // true
+```
+
+**Date**
+
+```js
+var a = new Date(2009, 9, 25);
+var b = new Date(2009, 9, 25);
+
+console.log(+a === +b) // true
+```
+
+**RegExp**
+
+```js
+var a = /a/i;
+var b = new RegExp(/a/i);
+
+console.log('' + a === '' + b) // true
+```
+
+**Number**
+
+```js
+var a = 1;
+var b = new Number(1);
+
+console.log(+a === +b) // true
+```
+
+嗯哼？你确定 Number 能这么简单的判断？
+
+```js
+var a = Number(NaN);
+var b = Number(NaN);
+
+console.log(+a === +b); // false
+```
+
+可是 a 和 b 应该被判断成 true 的呐~
+
+那么我们就改成这样：
+
+```js
+var a = Number(NaN);
+var b = Number(NaN);
+
+function eq() {
+    // 判断 Number(NaN) Object(NaN) 等情况
+    if (+a !== +a) return +b !== +b;
+    // 其他判断 ...
+}
+
+console.log(eq(a, b)); // true
+```
+
+## deepEq 函数
+
+现在我们可以写一点 deepEq 函数了。
+
+```js
+var toString = Object.prototype.toString;
+
+function deepEq(a, b) {
+    var className = toString.call(a);
+    if (className !== toString.call(b)) return false;
+
+    switch (className) {
+        case '[object RegExp]':
+        case '[object String]':
+            return '' + a === '' + b;
+        case '[object Number]':
+            if (+a !== +a) return +b !== +b;
+            return +a === 0 ? 1 / +a === 1 / b : +a === +b;
+      case '[object Date]':
+      case '[object Boolean]':
+            return +a === +b;
+    }
+
+    // 其他判断
+}
+```
+
+## 构造函数实例
+
+我们看个例子：
+
+```js
+function Person() {
+    this.name = name;
+}
+
+function Animal() {
+    this.name = name
+}
+
+var person = new Person('Kevin');
+var animal = new Animal('Kevin');
+
+eq(person, animal) // ???
+```
+
+虽然 `person` 和 `animal` 都是 `{name: 'Kevin'}`，但是 `person` 和 `animal` 属于不同构造函数的实例，为了做出区分，我们认为是不同的对象。
+
+如果两个对象所属的构造函数对象不同，两个对象就一定不相等吗？
+
+并不一定，我们再举个例子：
+
+```js
+var attrs = Object.create(null);
+attrs.name = "Bob";
+eq(attrs, {name: "Bob"}); // ???
+```
+
+尽管 `attrs` 没有原型，`{name: "Bob"}` 的构造函数是 `Object`，但是在实际应用中，只要他们有着相同的键值对，我们依然认为是相等。
+
+从函数设计的角度来看，我们不应该让他们相等，但是从实践的角度，我们让他们相等，所以相等就是一件如此随意的事情吗？！对啊，我也在想：undersocre，你怎么能如此随意呢！！！
+
+哎，吐槽完了，我们还是要接着写这个相等函数，我们可以先做个判断，对于不同构造函数下的实例直接返回 false。
+
+```js
+function isFunction(obj) {
+    return toString.call(obj) === '[object Function]'
+}
+
+function deepEq(a, b) {
+    // 接着上面的内容
+    var areArrays = className === '[object Array]';
+    // 不是数组
+    if (!areArrays) {
+        // 过滤掉两个函数的情况
+        if (typeof a != 'object' || typeof b != 'object') return false;
+
+        var aCtor = a.constructor, bCtor = b.constructor;
+        // aCtor 和 bCtor 必须都存在并且都不是 Object 构造函数的情况下，aCtor 不等于 bCtor， 那这两个对象就真的不相等啦
+        if (aCtor == bCtor && !(isFunction(aCtor) && aCtor instanceof aCtor && isFunction(bCtor) && bCtor instanceof bCtor) && ('constructor' in a && 'constructor' in b)) {
+            return false;
         }
     }
 
-    return target;
-};
-```
-
-## extend 深拷贝
-
-那如何进行深层次的复制呢？jQuery v1.1.4 加入了一个新的用法：
-
-```js
-jQuery.extend( [deep], target, object1 [, objectN ] )
-```
-
-也就是说，函数的第一个参数可以传一个布尔值，如果为 true，我们就会进行深拷贝，false 依然当做浅拷贝，这个时候，target 就往后移动到第二个参数。
-
-还是举这个例子：
-
-```js
-var obj1 = {
-    a: 1,
-    b: { b1: 1, b2: 2 }
-};
-
-var obj2 = {
-    b: { b1: 3, b3: 4 },
-    c: 3
-};
-
-var obj3 = {
-    d: 4
+    // 下面还有好多判断
 }
-
-console.log($.extend(true, obj1, obj2, obj3));
-
-// {
-//    a: 1,
-//    b: { b1: 3, b2: 2, b3: 4 },
-//    c: 3,
-//    d: 4
-// }
 ```
 
-因为采用了深拷贝，会遍历到更深的层次进行添加和覆盖。
+## 数组相等
 
-## extend 第二版
-
-我们来实现深拷贝的功能，值得注意的是：
-
-1. 需要根据第一个参数的类型，确定 target 和要合并的对象的下标起始值。
-2. 如果是深拷贝，根据 copy 的类型递归 extend。
+现在终于可以进入我们期待已久的数组和对象的判断，不过其实这个很简单，就是递归遍历一遍……
 
 ```js
-// 第二版
-function extend() {
-    // 默认不进行深拷贝
-    var deep = false;
-    var name, options, src, copy;
-    var length = arguments.length;
-    // 记录要复制的对象的下标
-    var i = 1;
-    // 第一个参数不传布尔值的情况下，target默认是第一个参数
-    var target = arguments[0] || {};
-    // 如果第一个参数是布尔值，第二个参数是才是target
-    if (typeof target == 'boolean') {
-        deep = target;
-        target = arguments[i] || {};
-        i++;
-    }
-    // 如果target不是对象，我们是无法进行复制的，所以设为{}
-    if (typeof target !== 'object') {
-        target = {}
-    }
+function deepEq(a, b) {
+    // 再接着上面的内容
+    if (areArrays) {
 
-    // 循环遍历要复制的对象们
-    for (; i < length; i++) {
-        // 获取当前对象
-        options = arguments[i];
-        // 要求不能为空 避免extend(a,,b)这种情况
-        if (options != null) {
-            for (name in options) {
-                // 目标属性值
-                src = target[name];
-                // 要复制的对象的属性值
-                copy = options[name];
+        length = a.length;
+        if (length !== b.length) return false;
 
-                if (deep && copy && typeof copy == 'object') {
-                    // 递归调用
-                    target[name] = extend(deep, src, copy);
-                }
-                else if (copy !== undefined){
-                    target[name] = copy;
-                }
-            }
+        while (length--) {
+            if (!eq(a[length], b[length])) return false;
+         }
+    } 
+    else {
+
+        var keys = Object.keys(a), key;
+        length = keys.length;
+
+        if (Object.keys(b).length !== length) return false;
+
+        while (length--) {
+            key = keys[length];
+            if (!(b.hasOwnProperty(key) && eq(a[key], b[key]))) return false;
         }
     }
+    return true;
 
-    return target;
-};
-```
-
-在实现上，核心的部分还是跟上篇实现的深浅拷贝函数一致，如果要复制的对象的属性值是一个对象，就递归调用 extend。不过 extend 的实现中，多了很多细节上的判断，比如第一个参数是否是布尔值，target 是否是一个对象，不传参数时的默认值等。
-
-接下来，我们看几个 jQuery 的 extend 使用效果：
-
-## target 是函数
-
-在我们的实现中，`typeof target` 必须等于 `object`，我们才会在这个 `target` 基础上进行拓展，然而我们用 `typeof` 判断一个函数时，会返回`function`，也就是说，我们无法在一个函数上进行拓展！
-
-什么，我们还能在一个函数上进行拓展！！
-
-当然啦，毕竟函数也是一种对象嘛，让我们看个例子：
-
-```js
-function a() {}
-
-a.target = 'b';
-
-console.log(a.target); // b
-```
-
-实际上，在 underscore 的实现中，underscore 的各种方法便是挂在了函数上！
-
-所以在这里我们还要判断是不是函数，这时候我们便可以使用[《JavaScript专题之类型判断(上)》](https://github.com/mqyqingfeng/Blog/issues/28)中写得 isFunction 函数
-
-我们这样修改：
-
-```js
-if (typeof target !== "object" && !isFunction(target)) {
-    target = {};
-}
-```
-
-## 类型不一致
-
-其实我们实现的方法有个小 bug ，不信我们写个 demo:
-
-```js
-var obj1 = {
-    a: 1,
-    b: {
-        c: 2
-    }
-}
-
-var obj2 = {
-    b: {
-        c: [5],
-
-    }
-}
-
-var d = extend(true, obj1, obj2)
-console.log(d);
-```
-
-我们预期会返回这样一个对象：
-
-```js
-{
-    a: 1,
-    b: {
-        c: [5]
-    }
-}
-```
-
-然而返回了这样一个对象:
-
-```js
-{
-    a: 1,
-    b: {
-        c: {
-            0: 5
-        }
-    }
-}
-```
-
-让我们细细分析为什么会导致这种情况：
-
-首先我们在函数的开始写一个 console 函数比如：console.log(1)，然后以上面这个 demo 为例，执行一下，我们会发现 1 打印了三次，这就是说 extend 函数执行了三遍，让我们捋一捋这三遍传入的参数：
-
-第一遍执行到递归调用时：
-
-```js
-var src = { c: 2 };
-var copy = { c: [5]};
-
-target[name] = extend(true, src, copy);
-
-```
-
-第二遍执行到递归调用时：
-
-```js
-var src = 2;
-var copy = [5];
-
-target[name] = extend(true, src, copy);
-
-```
-
-第三遍进行最终的赋值，因为 src 是一个基本类型，我们默认使用一个空对象作为目标值，所以最终的结果就变成了对象的属性！
-
-为了解决这个问题，我们需要对目标属性值和待复制对象的属性值进行判断：
-
-判断目标属性值跟要复制的对象的属性值类型是否一致:
-
-* 如果待复制对象属性值类型为数组，目标属性值类型不为数组的话，目标属性值就设为 []
-
-* 如果待复制对象属性值类型为对象，目标属性值类型不为对象的话，目标属性值就设为 {}
-
-结合着[《JavaScript专题之类型判断(下)》](https://github.com/mqyqingfeng/Blog/issues/30)中的 isPlainObject 函数，我们可以对类型进行更细致的划分：
-
-```js
-
-var clone, copyIsArray;
-
-...
-
-if (deep && copy && (isPlainObject(copy) ||
-        (copyIsArray = Array.isArray(copy)))) {
-
-    if (copyIsArray) {
-        copyIsArray = false;
-        clone = src && Array.isArray(src) ? src : [];
-
-    } else {
-        clone = src && isPlainObject(src) ? src : {};
-    }
-
-    target[name] = extend(deep, clone, copy);
-
-} else if (copy !== undefined) {
-    target[name] = copy;
 }
 ```
 
 ## 循环引用
 
-实际上，我们还可能遇到一个循环引用的问题，举个例子：
+如果觉得这就结束了，简直是太天真，因为最难的部分才终于要开始，这个问题就是循环引用！
+
+举个简单的例子：
 
 ```js
-var a = {name : b};
-var b = {name : a}
-var c = extend(a, b);
-console.log(c);
+a = {abc: null};
+b = {abc: null};
+a.abc = a;
+b.abc = b;
+
+eq(a, b)
 ```
 
-我们会得到一个可以无限展开的对象，类似于这样：
-
-![循环引用对象](https://github.com/mqyqingfeng/Blog/raw/master/Images/extend/extend1.png)
-
-为了避免这个问题，我们需要判断要复制的对象属性是否等于 target，如果等于，我们就跳过：
+再复杂一点的，比如：
 
 ```js
-...
-src = target[name];
-copy = options[name];
+a = {foo: {b: {foo: {c: {foo: null}}}}};
+b = {foo: {b: {foo: {c: {foo: null}}}}};
+a.foo.b.foo.c.foo = a;
+b.foo.b.foo.c.foo = b;
 
-if (target === copy) {
-    continue;
+eq(a, b)
+```
+
+为了给大家演示下循环引用，大家可以把下面这段已经精简过的代码复制到浏览器中尝试：
+
+```js
+// demo
+var a, b;
+
+a = { foo: { b: { foo: { c: { foo: null } } } } };
+b = { foo: { b: { foo: { c: { foo: null } } } } };
+a.foo.b.foo.c.foo = a;
+b.foo.b.foo.c.foo = b;
+
+function eq(a, b, aStack, bStack) {
+    if (typeof a == 'number') {
+        return a === b;
+    }
+
+    return deepEq(a, b)
 }
-...
-```
 
-如果加上这句，结果就会是：
+function deepEq(a, b) {
 
-```js
-{name: undefined}
-```
+    var keys = Object.keys(a);
+    var length = keys.length;
+    var key;
 
-## 最终代码
+    while (length--) {
+        key = keys[length]
 
-```js
-function extend() {
-    // 默认不进行深拷贝
-    var deep = false;
-    var name, options, src, copy, clone, copyIsArray;
-    var length = arguments.length;
-    // 记录要复制的对象的下标
-    var i = 1;
-    // 第一个参数不传布尔值的情况下，target 默认是第一个参数
-    var target = arguments[0] || {};
-    // 如果第一个参数是布尔值，第二个参数是 target
-    if (typeof target == 'boolean') {
-        deep = target;
-        target = arguments[i] || {};
-        i++;
-    }
-    // 如果target不是对象，我们是无法进行复制的，所以设为 {}
-    if (typeof target !== "object" && !isFunction(target)) {
-        target = {};
+        // 这是为了让你看到代码其实一直在执行
+        console.log(a[key], b[key])
+
+        if (!eq(a[key], b[key])) return false;
     }
 
-    // 循环遍历要复制的对象们
-    for (; i < length; i++) {
-        // 获取当前对象
-        options = arguments[i];
-        // 要求不能为空 避免 extend(a,,b) 这种情况
-        if (options != null) {
-            for (name in options) {
-                // 目标属性值
-                src = target[name];
-                // 要复制的对象的属性值
-                copy = options[name];
+    return true;
 
-                // 解决循环引用
-                if (target === copy) {
-                    continue;
-                }
+}
 
-                // 要递归的对象必须是 plainObject 或者数组
-                if (deep && copy && (isPlainObject(copy) ||
-                        (copyIsArray = Array.isArray(copy)))) {
-                    // 要复制的对象属性值类型需要与目标属性值相同
-                    if (copyIsArray) {
-                        copyIsArray = false;
-                        clone = src && Array.isArray(src) ? src : [];
+eq(a, b)
+```
 
-                    } else {
-                        clone = src && isPlainObject(src) ? src : {};
-                    }
+嗯，以上的代码是死循环。
 
-                    target[name] = extend(deep, clone, copy);
+那么，我们又该如何解决这个问题呢？underscore 的思路是 eq 的时候，多传递两个参数为 aStack 和 bStack，用来储存 a 和 b 递归比较过程中的 a 和 b 的值，咋说的这么绕口呢？
+我们直接看个精简的例子：
 
-                } else if (copy !== undefined) {
-                    target[name] = copy;
-                }
-            }
+```js
+var a, b;
+
+a = { foo: { b: { foo: { c: { foo: null } } } } };
+b = { foo: { b: { foo: { c: { foo: null } } } } };
+a.foo.b.foo.c.foo = a;
+b.foo.b.foo.c.foo = b;
+
+function eq(a, b, aStack, bStack) {
+    if (typeof a == 'number') {
+        return a === b;
+    }
+
+    return deepEq(a, b, aStack, bStack)
+}
+
+function deepEq(a, b, aStack, bStack) {
+
+    aStack = aStack || [];
+    bStack = bStack || [];
+
+    var length = aStack.length;
+
+    while (length--) {
+        if (aStack[length] === a) {
+              return bStack[length] === b;
         }
     }
 
-    return target;
-};
-```
+    aStack.push(a);
+    bStack.push(b);
 
-## 思考题
+    var keys = Object.keys(a);
+    var length = keys.length;
+    var key;
 
-如果觉得看明白了上面的代码，想想下面两个 demo 的结果：
+    while (length--) {
+        key = keys[length]
 
-```js
-var a = extend(true, [4, 5, 6, 7, 8, 9], [1, 2, 3]);
-console.log(a) // ???
-```
+        console.log(a[key], b[key], aStack, bStack)
 
-```js
-var obj1 = {
-    value: {
-        3: 1
+        if (!eq(a[key], b[key], aStack, bStack)) return false;
     }
+
+    // aStack.pop();
+    // bStack.pop();
+    return true;
+
 }
 
-var obj2 = {
-    value: [5, 6, 7],
-
-}
-
-var b = extend(true, obj1, obj2) // ???
-var c = extend(true, obj2, obj1) // ???
+console.log(eq(a, b))
 ```
+
+之所以注释掉 `aStack.pop()`和`bStack.pop()`这两句，是为了方便大家查看 aStack bStack的值。
+
+## 最终的 eq 函数
+
+最终的代码如下：
+
+```js
+var toString = Object.prototype.toString;
+
+function isFunction(obj) {
+    return toString.call(obj) === '[object Function]'
+}
+
+function eq(a, b, aStack, bStack) {
+
+    // === 结果为 true 的区别出 +0 和 -0
+    if (a === b) return a !== 0 || 1 / a === 1 / b;
+
+    // typeof null 的结果为 object ，这里做判断，是为了让有 null 的情况尽早退出函数
+    if (a == null || b == null) return false;
+
+    // 判断 NaN
+    if (a !== a) return b !== b;
+
+    // 判断参数 a 类型，如果是基本类型，在这里可以直接返回 false
+    var type = typeof a;
+    if (type !== 'function' && type !== 'object' && typeof b != 'object') return false;
+
+    // 更复杂的对象使用 deepEq 函数进行深度比较
+    return deepEq(a, b, aStack, bStack);
+};
+
+function deepEq(a, b, aStack, bStack) {
+
+    // a 和 b 的内部属性 [[class]] 相同时 返回 true
+    var className = toString.call(a);
+    if (className !== toString.call(b)) return false;
+
+    switch (className) {
+        case '[object RegExp]':
+        case '[object String]':
+            return '' + a === '' + b;
+        case '[object Number]':
+            if (+a !== +a) return +b !== +b;
+            return +a === 0 ? 1 / +a === 1 / b : +a === +b;
+        case '[object Date]':
+        case '[object Boolean]':
+            return +a === +b;
+    }
+
+    var areArrays = className === '[object Array]';
+    // 不是数组
+    if (!areArrays) {
+        // 过滤掉两个函数的情况
+        if (typeof a != 'object' || typeof b != 'object') return false;
+
+        var aCtor = a.constructor,
+            bCtor = b.constructor;
+        // aCtor 和 bCtor 必须都存在并且都不是 Object 构造函数的情况下，aCtor 不等于 bCtor， 那这两个对象就真的不相等啦
+        if (aCtor == bCtor && !(isFunction(aCtor) && aCtor instanceof aCtor && isFunction(bCtor) && bCtor instanceof bCtor) && ('constructor' in a && 'constructor' in b)) {
+            return false;
+        }
+    }
+
+
+    aStack = aStack || [];
+    bStack = bStack || [];
+    var length = aStack.length;
+
+    // 检查是否有循环引用的部分
+    while (length--) {
+        if (aStack[length] === a) {
+            return bStack[length] === b;
+        }
+    }
+
+    aStack.push(a);
+    bStack.push(b);
+
+    // 数组判断
+    if (areArrays) {
+
+        length = a.length;
+        if (length !== b.length) return false;
+
+        while (length--) {
+            if (!eq(a[length], b[length], aStack, bStack)) return false;
+        }
+    }
+    // 对象判断
+    else {
+
+        var keys = Object.keys(a),
+            key;
+        length = keys.length;
+
+        if (Object.keys(b).length !== length) return false;
+        while (length--) {
+
+            key = keys[length];
+            if (!(b.hasOwnProperty(key) && eq(a[key], b[key], aStack, bStack))) return false;
+        }
+    }
+
+    aStack.pop();
+    bStack.pop();
+    return true;
+
+}
+
+console.log(eq(0, 0)) // true
+console.log(eq(0, -0)) // false
+
+console.log(eq(NaN, NaN)); // true
+console.log(eq(Number(NaN), Number(NaN))); // true
+
+console.log(eq('Curly', new String('Curly'))); // true
+
+console.log(eq([1], [1])); // true
+console.log(eq({ value: 1 }, { value: 1 })); // true
+
+var a, b;
+
+a = { foo: { b: { foo: { c: { foo: null } } } } };
+b = { foo: { b: { foo: { c: { foo: null } } } } };
+a.foo.b.foo.c.foo = a;
+b.foo.b.foo.c.foo = b;
+
+console.log(eq(a, b)) // true
+```
+
+真让人感叹一句：eq 不愧是 underscore 中实现代码行数最多的函数了！
 
 ## 专题系列
 

@@ -17,8 +17,48 @@
     var relationship6 = person.constructor === Person; // true
   ```
 
+
+
   ### 2. 关系图
   [原型与原型链](./images/prototype.png);
+
+  ### 3. instanceof
+  [INSTANCEOF STUDY LINK](https://gitcode.csdn.net/65e7d2e41a836825ed78965e.html?dp_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6Mjc0MjI2NywiZXhwIjoxNzI0Mzk5MTM4LCJpYXQiOjE3MjM3OTQzMzgsInVzZXJuYW1lIjoid2VpeGluXzQzMzUxNjQzIn0.T3IvLVrnP3TcO8Qv-lqW71Bq1AbiTufCGs3KvTlNxbE)
+  ```js
+  // 定义构造函数
+  function C () {}
+  function D () {}
+  // 实例化一个 o 对象
+  var o = new C()
+  // true，true --> C.prototype 在 o 的原型链上
+  console.log(o instanceof C, o.__proto__ === C.prototype, '此时 o 的 __proto__：', o.__proto__, '此时 C 的 prototype：', C.prototype)
+  // false，false --> D.prototype 不在 o 的原型链上
+  console.log(o instanceof D, o.__proto__ === D.prototype)
+  // true true --> Object.prototype 在 o 的原型链上
+  console.log(o instanceof Object, o.__proto__.__proto__ === Object.prototype)
+  // 这时我们修改构造函数 C 的原型为一个空对象
+  C.prototype = {}
+  // 实例化一个 o2 对象
+  var o2 = new C()
+  // true --> C.prototype 在 o2 的原型链上
+  console.log(o2 instanceof C)
+  // false，C.prototype 指向了一个空对象,这个空对象不在 o 的原型链上.
+  console.log(o instanceof C, '此时 o 的 __proto__：', o.__proto__, '此时 C 的 prototype：', C.prototype)
+  console.log('此时 D 的 prototype：', D.prototype);
+  // 继承
+  D.prototype = new C()
+  console.log('此时 D 的 prototype：', D.prototype);
+  var o3 = new D()
+  // true, true --> 因为 o3 是 构造函数 D new 出来的实例对象，所以 D.prototype 一定在 o3 的原型链上
+  console.log(o3 instanceof D, o3.__proto__ === D.prototype)
+  // true --> 因为 C.prototype 现在在 o3 的原型链上
+  console.log(o3 instanceof C)
+  // true,true --> 上面的结果为什么为 true 呢，看如下代码，D.prototype 是 构造函数 C new 出来的实例对象，所以 C.prototype 一定在 D.prototype 的原型链上
+  console.log(o3.__proto__ === D.prototype, D.prototype.__proto__ === C.prototype);
+  // true 相当于如下代码
+  console.log(o3.__proto__.__proto__ === C.prototype);
+
+  ```
 
 
 ## 二. js词法作用域与动态作用域

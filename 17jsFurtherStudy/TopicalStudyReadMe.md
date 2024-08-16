@@ -80,5 +80,111 @@
   ### 深拷贝
     可以利用json.stringify json.parse、递归等方法实现
 
+## 六. 数组扁平化
 
+## 七. 在数组中查找指定元素
+findIndex, findLastIndex, indexOf, lastIndexOf
+- indexOf 参数 fromIndex：
+  >设定开始查找的位置。如果该索引值大于或等于数组长度，意味着不会在数组里查找，返回 -1。如果参数中提供的索引值是一个负值，则将其作为数组末尾的一个抵消，即 -1 表示从最后一个元素开始查找，-2 表示从倒数第二个元素开始查找 ，以此类推。 注意：如果参数中提供的索引值是一个负值，仍然从前向后查询数组。如果抵消后的索引值仍小于 0，则整个数组都将会被查询。其默认值为 0。
+
+- lastIndexOf 的 fromIndex：
+  >从此位置开始逆向查找。默认为数组的长度减 1，即整个数组都被查找。如果该值大于或等于数组的长度，则整个数组会被查找。如果为负值，将其视为从数组末尾向前的偏移。即使该值为负，数组仍然会被从后向前查找。如果该值为负时，其绝对值大于数组长度，则方法返回 -1，即数组不会被查找。
+
+
+
+## 八. each实现
+利用for循环、for in 循环，注意区分是对象还是数组（类数组），数组（类数组）使用for循环，对象使用for in 循环。
+
+## 九. 判断对象相等与否
+- 相等
+  我们认为：
+
+  1. NaN 和 NaN 是相等
+  2. [1] 和 [1] 是相等
+  3. {value: 1} 和 {value: 1} 是相等
+
+  不仅仅是这些长得一样的，还有
+
+  1. 1 和 new Number(1) 是相等
+  2. 'Curly' 和 new String('Curly') 是相等
+  3. true 和 new Boolean(true) 是相等
+- 注意点
+  1. 注意区分+0 和 -0
+    ```js
+    console.log(+0 === -0) // true
+    ``` 
+    注意+0 和 -0实际上是有区别的：
+    > 因为 JavaScript 采用了IEEE_754 浮点数表示法(几乎所有现代编程语言所采用)，这是一种二进制表示法，按照这个标准，最高位是符号位(0 代表正，1 代表负)，剩下的用于表示大小。而对于零这个边界值 ，1000(-0) 和 0000(0)都是表示 0 ，这才有了正负零的区别。
+    
+    判断方法:
+    ```js
+    function eq(a,b) {
+      return a===b ? a !== 0 || (a/1 === b/1)
+    }
+    ```
+  2. NaN
+    ```js
+    console.log(NaN === NaN) // false
+    ```
+
+    判断方法：
+    利用NaN !== NaN特性来进行判断
+    ```js
+    function eq(a,b) {
+      if(a !== a) return b !== b
+    }
+    ```
+  3. 复杂的对象类型比较
+    比如字符串'hel'以及经过new String()生成的包装对象new String('hel')
+
+    判断方法：
+    通过Object.prototype.toString.call方法获取对应值的类名，若类名相等，
+    再通过类型转换进行判断两值是否相等
+    ```js
+    console.log('a' === '' + new String('a')); // true
+    var a = /a/i;
+    var b = new RegExp(/a/i);
+    console.log('' + a === '' + b) // true
+    ```
+
+  4. 构造函数生成的实例对象
+  获取对象对应的构造器，若两者构造器不一致，则两者不等
+
+  5. 对象、数组相等的判定
+  递归遍历，长度不等或对应值不等，则两者不等。
+  
+  6. 对象中存在循环引用的判断
+  判断a, b是否相等 的时候，多传递两个参数为 aStack 和 bStack，用来储存 a 和 b 递归比较过程中的 a 和 b 的值。
+  ```js
+  // ...前面一些判断
+  aStack = aStack || [];
+  bStack = bStack || [];
+
+  var length = aStack.length;
+  // 判断是否有循环引用（本质上，就是将递归的值存储到stack中，如果相等，那么直接return回去，避免递归爆栈问题）
+  while (length--) {
+      if (aStack[length] === a) {
+            return bStack[length] === b;
+      }
+  }
+  // 对象入栈
+  aStack.push(a);
+  bStack.push(b);
+  // ... 数组、对象相等与否的判断
+
+  // 对象出栈
+  aStack.push();
+  bStack.push();
+  ```
+
+
+  7. **补充**
+  ```js
+  console.log(Function instanceof Function); // true
+  //这里是因为Function.prototype === Function.__proto__
+  console.log(Object instanceof Object);   // true
+  //这里是因为Object.prototype === Object.__proto__.__proto__
+  console.log(Array instanceof Array); // false 
+  //这里是因为Array.prototype !== Array.__proto__(注：Array.__proto__  === Function.prototype)且Array.prototype !== Array.__proto__.__proto__(注：Array.__proto__.__proto__  === Object.prototype)且Array.prototype !== Array.__proto__.__proto__.__proto__(注：Array.__proto__.__proto__.__proto__  === null)
+  ```
 
