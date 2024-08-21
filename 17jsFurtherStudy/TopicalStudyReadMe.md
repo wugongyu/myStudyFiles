@@ -188,3 +188,48 @@ findIndex, findLastIndex, indexOf, lastIndexOf
   //这里是因为Array.prototype !== Array.__proto__(注：Array.__proto__  === Function.prototype)且Array.prototype !== Array.__proto__.__proto__(注：Array.__proto__.__proto__  === Object.prototype)且Array.prototype !== Array.__proto__.__proto__.__proto__(注：Array.__proto__.__proto__.__proto__  === null)
   ```
 
+## 十. 函数柯里化
+  ### 定义
+  函数柯里化是一种将使用多个参数的函数转换成一系列使用一个参数的函数的技术。
+
+  ### 柯里化用途
+  实现参数复用，本质上是降低通用性，提高复用性。
+
+  ### 函数柯里化的实现
+  用闭包把参数（实参）保存起来，当参数（实参）的数量足够执行函数了（即实参的长度等于函数形参的长度），
+  就开始执行函数，否则递归利用闭包实现参数累积保存。
+  ```js
+  function curry(fn, args) {
+    return function() {
+      var combinedArgs = [...args, ...arguments];
+      if(combinedArgs.length < fn.length) {
+        return curry.apply(this, fn, combinedArgs)
+      } else {
+        fn.apply(this, combinedArgs);
+      }
+    }
+  }
+  ```
+
+## 十一. 偏函数（局部应用(Partial application)）
+  ### 局部应用
+  在计算机科学中，局部应用是指固定一个函数的一些参数，然后产生另一个更小元的函数。
+  什么是元？元是指函数参数的个数，比如一个带有两个参数的函数被称为二元函数。
+
+  ### 局部应用与柯里化
+  柯里化是将一个多参数函数转换成多个单参数函数，也就是将一个 n 元函数转换成 n 个一元函数。
+
+  局部应用则是固定一个函数的一个或者多个参数，也就是将一个 n 元函数转换成一个 n - x 元函数。
+  
+## 十二. 惰性函数
+  ### 使用场景
+  当每次都需要进行条件判断，其实只需要判断一次，接下来的使用方式都不会发生改变的时候，想想是否可以考虑使用惰性函数。
+  ### 定义
+  惰性函数就是解决每次都要进行判断的这个问题，解决原理很简单，重写函数。
+## 十三. compose函数组合
+  ### 函数组合
+  利用 一个函数方法（例如自定义一个compose方法） 将两个函数组合成一个函数，
+  让代码从右向左运行，而不是由内而外运行，可读性大大提升。这便是函数组合。
+
+  ### pointFree
+  pointfree 指的是函数无须提及将要操作的数据是什么样的。
