@@ -209,6 +209,8 @@ function curryingWithHolders(fn, args, holders) {
   }
 }
 
+var curry = curryingHolders;
+
 
 
 

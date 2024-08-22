@@ -1,351 +1,211 @@
-# JavaScript专题之函数组合
+# JavaScript 专题之函数记忆
 
-## 需求
+## 定义
 
-我们需要写一个函数，输入 'kevin'，返回 'HELLO, KEVIN'。
+函数记忆是指将上次的计算结果缓存起来，当下次调用时，如果遇到相同的参数，就直接返回缓存中的数据。
 
-## 尝试
-
-```js
-var toUpperCase = function(x) { return x.toUpperCase(); };
-var hello = function(x) { return 'HELLO, ' + x; };
-
-var greet = function(x){
-    return hello(toUpperCase(x));
-};
-
-greet('kevin');
-```
-
-还好我们只有两个步骤，首先小写转大写，然后拼接字符串。如果有更多的操作，greet 函数里就需要更多的嵌套，类似于 `fn3(fn2(fn1(fn0(x))))`。
-
-## 优化
-
-试想我们写个 compose 函数：
+举个例子：
 
 ```js
-var compose = function(f,g) {
-    return function(x) {
-        return f(g(x));
-    };
-};
-```
-
-greet 函数就可以被优化为：
-
-```js
-var greet = compose(hello, toUpperCase);
-greet('kevin');
-```
-
-利用 compose 将两个函数组合成一个函数，让代码从右向左运行，而不是由内而外运行，可读性大大提升。这便是函数组合。
-
-但是现在的 compose 函数也只是能支持两个参数，如果有更多的步骤呢？我们岂不是要这样做：
-
-```js
-compose(d, compose(c, compose(b, a)))
-```
-
-为什么我们不写一个帅气的 compose 函数支持传入多个函数呢？这样就变成了：
-
-```js
-compose(d, c, b, a)
-```
-
-## compose
-
-我们直接抄袭 underscore 的 compose 函数的实现：
-
-```js
-function compose() {
-    var args = arguments;
-    var start = args.length - 1;
-    return function() {
-        var i = start;
-        var result = args[start].apply(this, arguments);
-        while (i--) result = args[i].call(this, result);
-        return result;
-    };
-};
-```
-
-现在的 compose 函数已经可以支持多个函数了，然而有了这个又有什么用呢？
-
-在此之前，我们先了解一个概念叫做 pointfree。
-
-## pointfree
-
-pointfree 指的是函数无须提及将要操作的数据是什么样的。依然是以最初的需求为例：
-
-```js
-// 需求：输入 'kevin'，返回 'HELLO, KEVIN'。
-
-// 非 pointfree，因为提到了数据：name
-var greet = function(name) {
-    return ('hello ' + name).toUpperCase();
+function add(a, b) {
+    return a + b;
 }
 
-// pointfree
-// 先定义基本运算，这些可以封装起来复用
-var toUpperCase = function(x) { return x.toUpperCase(); };
-var hello = function(x) { return 'HELLO, ' + x; };
+// 假设 memorize 可以实现函数记忆
+var memoizedAdd = memorize(add);
 
-var greet = compose(hello, toUpperCase);
-greet('kevin');
+memoizedAdd(1, 2) // 3
+memoizedAdd(1, 2) // 相同的参数，第二次调用时，从缓存中取出数据，而非重新计算一次
 ```
 
-我们再举个稍微复杂一点的例子，为了方便书写，我们需要借助在[《JavaScript专题之函数柯里化》](https://github.com/mqyqingfeng/Blog/issues/42)中写到的 curry 函数：
+## 原理
+
+实现这样一个 memorize 函数很简单，原理上只用把参数和对应的结果数据存到一个对象中，调用时，判断参数对应的数据是否存在，存在就返回对应的结果数据。
+
+## 第一版
+
+我们来写一版：
 
 ```js
-// 需求：输入 'kevin daisy kelly'，返回 'K.D.K'
-
-// 非 pointfree，因为提到了数据：name
-var initials = function (name) {
-    return name.split(' ').map(compose(toUpperCase, head)).join('. ');
-};
-
-// pointfree
-// 先定义基本运算
-var split = curry(function(separator, str) { return str.split(separator) })
-var head = function(str) { return str.slice(0, 1) }
-var toUpperCase = function(str) { return str.toUpperCase() }
-var join = curry(function(separator, arr) { return arr.join(separator) })
-var map = curry(function(fn, arr) { return arr.map(fn) })
-
-var initials = compose(join('.'), map(compose(toUpperCase, head)), split(' '));
-
-initials("kevin daisy kelly");
-```
-
-从这个例子中我们可以看到，利用柯里化（curry）和函数组合 (compose) 非常有助于实现 pointfree。
-
-也许你会想，这种写法好麻烦呐，我们还需要定义那么多的基础函数……可是如果有工具库已经帮你写好了呢？比如 [ramda.js](http://ramda.cn/docs/)：
-
-```js
-// 使用 ramda.js
-var initials = R.compose(R.join('.'), R.map(R.compose(R.toUpper, R.head)), R.split(' '));
-```
-
-而且你也会发现：
-
-> Pointfree 的本质就是使用一些通用的函数，组合出各种复杂运算。上层运算不要直接操作数据，而是通过底层函数去处理。即不使用所要处理的值，只合成运算过程。
-
-那么使用 pointfree 模式究竟有什么好处呢？
-
-> pointfree 模式能够帮助我们减少不必要的命名，让代码保持简洁和通用，更符合语义，更容易复用，测试也变得轻而易举。
-
-## 实战
-
-这个例子来自于 [Favoring Curry](http://fr.umio.us/favoring-curry/)：
-
-假设我们从服务器获取这样的数据：
-
-```js
-var data = {
-    result: "SUCCESS",
-    tasks: [
-        {id: 104, complete: false,            priority: "high",
-                  dueDate: "2013-11-29",      username: "Scott",
-                  title: "Do something",      created: "9/22/2013"},
-        {id: 105, complete: false,            priority: "medium",
-                  dueDate: "2013-11-22",      username: "Lena",
-                  title: "Do something else", created: "9/22/2013"},
-        {id: 107, complete: true,             priority: "high",
-                  dueDate: "2013-11-22",      username: "Mike",
-                  title: "Fix the foo",       created: "9/22/2013"},
-        {id: 108, complete: false,            priority: "low",
-                  dueDate: "2013-11-15",      username: "Punam",
-                  title: "Adjust the bar",    created: "9/25/2013"},
-        {id: 110, complete: false,            priority: "medium",
-                  dueDate: "2013-11-15",      username: "Scott",
-                  title: "Rename everything", created: "10/2/2013"},
-        {id: 112, complete: true,             priority: "high",
-                  dueDate: "2013-11-27",      username: "Lena",
-                  title: "Alter all quuxes",  created: "10/5/2013"}
-    ]
-};
-```
-
-我们需要写一个名为 getIncompleteTaskSummaries 的函数，接收一个 username 作为参数，从服务器获取数据，然后筛选出这个用户的未完成的任务的 ids、priorities、titles、和 dueDate 数据，并且按照日期升序排序。
-
-以 Scott 为例，最终筛选出的数据为：
-
-```js
-[
-    {id: 110, title: "Rename everything", 
-        dueDate: "2013-11-15", priority: "medium"},
-    {id: 104, title: "Do something", 
-        dueDate: "2013-11-29", priority: "high"}
-]
-```
-
-普通的方式为：
-
-```js
-// 第一版 过程式编程
-var fetchData = function() {
-    // 模拟
-    return Promise.resolve(data)
-};
-
-var getIncompleteTaskSummaries = function(membername) {
-     return fetchData()
-         .then(function(data) {
-             return data.tasks;
-         })
-         .then(function(tasks) {
-             return tasks.filter(function(task) {
-                 return task.username == membername
-             })
-         })
-         .then(function(tasks) {
-             return tasks.filter(function(task) {
-                 return !task.complete
-             })
-         })
-         .then(function(tasks) {
-             return tasks.map(function(task) {
-                 return {
-                     id: task.id,
-                     dueDate: task.dueDate,
-                     title: task.title,
-                     priority: task.priority
-                 }
-             })
-         })
-         .then(function(tasks) {
-             return tasks.sort(function(first, second) {
-                 var a = first.dueDate,
-                     b = second.dueDate;
-                 return a < b ? -1 : a > b ? 1 : 0;
-             });
-         })
-         .then(function(task) {
-             console.log(task)
-         })
-};
-
-getIncompleteTaskSummaries('Scott')
-```
-
-如果使用 pointfree 模式：
-
-```js
-// 第二版 pointfree 改写
-var fetchData = function() {
-    return Promise.resolve(data)
-};
-
-// 编写基本函数
-var prop = curry(function(name, obj) {
-    return obj[name];
-});
-
-var propEq = curry(function(name, val, obj) {
-    return obj[name] === val;
-});
-
-var filter = curry(function(fn, arr) {
-    return arr.filter(fn)
-});
-
-var map = curry(function(fn, arr) {
-    return arr.map(fn)
-});
-
-var pick = curry(function(args, obj){
-    var result = {};
-    for (var i = 0; i < args.length; i++) {
-        result[args[i]] = obj[args[i]]
+// 第一版 (来自《JavaScript权威指南》)
+function memoize(f) {
+    var cache = {};
+    return function(){
+        var key = arguments.length + Array.prototype.join.call(arguments, ",");
+        if (key in cache) {
+            return cache[key]
+        }
+        else return cache[key] = f.apply(this, arguments)
     }
-    return result;
-});
-
-var sortBy = curry(function(fn, arr) {
-    return arr.sort(function(a, b){
-        var a = fn(a),
-            b = fn(b);
-        return a < b ? -1 : a > b ? 1 : 0;
-    })
-});
-
-var getIncompleteTaskSummaries = function(membername) {
-    return fetchData()
-        .then(prop('tasks'))
-        .then(filter(propEq('username', membername)))
-        .then(filter(propEq('complete', false)))
-        .then(map(pick(['id', 'dueDate', 'title', 'priority'])))
-        .then(sortBy(prop('dueDate')))
-        .then(console.log)
-};
-
-getIncompleteTaskSummaries('Scott')
+}
 ```
 
-如果直接使用 ramda.js，你可以省去编写基本函数:
+我们来测试一下：
 
 ```js
-// 第三版 使用 ramda.js
-var fetchData = function() {
-    return Promise.resolve(data)
-};
+var add = function(a, b, c) {
+  return a + b + c
+}
 
-var getIncompleteTaskSummaries = function(membername) {
-    return fetchData()
-        .then(R.prop('tasks'))
-        .then(R.filter(R.propEq('username', membername)))
-        .then(R.filter(R.propEq('complete', false)))
-        .then(R.map(R.pick(['id', 'dueDate', 'title', 'priority'])))
-        .then(R.sortBy(R.prop('dueDate')))
-        .then(console.log)
-};
+var memoizedAdd = memorize(add)
 
-getIncompleteTaskSummaries('Scott')
+console.time('use memorize')
+for(var i = 0; i < 100000; i++) {
+    memoizedAdd(1, 2, 3)
+}
+console.timeEnd('use memorize')
+
+console.time('not use memorize')
+for(var i = 0; i < 100000; i++) {
+    add(1, 2, 3)
+}
+console.timeEnd('not use memorize')
 ```
 
-当然了，利用 compose，你也可以这样写：
+在 Chrome 中，使用 memorize 大约耗时 60ms，如果我们不使用函数记忆，大约耗时 1.3 ms 左右。
+
+## 注意
+
+什么，我们使用了看似高大上的函数记忆，结果却更加耗时，这个例子近乎有 60 倍呢！
+
+所以，函数记忆也并不是万能的，你看这个简单的场景，其实并不适合用函数记忆。
+
+需要注意的是，函数记忆只是一种编程技巧，本质上是牺牲算法的空间复杂度以换取更优的时间复杂度，在客户端 JavaScript 中代码的执行时间复杂度往往成为瓶颈，因此在大多数场景下，这种牺牲空间换取时间的做法以提升程序执行效率的做法是非常可取的。
+
+## 第二版
+
+因为第一版使用了 join 方法，我们很容易想到当参数是对象的时候，就会自动调用 toString 方法转换成 `[Object object]`，再拼接字符串作为 key 值。我们写个 demo 验证一下这个问题：
 
 ```js
-// 第四版 使用 compose
-var fetchData = function() {
-    return Promise.resolve(data)
-};
+var propValue = function(obj){
+    return obj.value
+}
 
-var getIncompleteTaskSummaries = function(membername) {
-    return fetchData()
-        .then(R.compose(
-            console.log,
-            R.sortBy(R.prop('dueDate')),
-            R.map(R.pick(['id', 'dueDate', 'title', 'priority'])
-            ),
-            R.filter(R.propEq('complete', false)),
-            R.filter(R.propEq('username', membername)),
-            R.prop('tasks'),
-        ))
-};
+var memoizedAdd = memorize(propValue)
 
-getIncompleteTaskSummaries('Scott')
+console.log(memoizedAdd({value: 1})) // 1
+console.log(memoizedAdd({value: 2})) // 1
 ```
 
-compose 是从右到左依此执行，当然你也可以写一个从左到右的版本，但是从右向左执行更加能够反映数学上的含义。
-
-ramda.js 提供了一个 R.pipe 函数，可以做的从左到右，以上可以改写为：
+两者都返回了 1，显然是有问题的，所以我们看看 underscore 的 memoize 函数是如何实现的：
 
 ```js
-// 第五版 使用 R.pipe
-var getIncompleteTaskSummaries = function(membername) {
-    return fetchData()
-        .then(R.pipe(
-            ),
-            R.prop('tasks'),
-            R.filter(R.propEq('username', membername)),
-            R.filter(R.propEq('complete', false)),
-            R.map(R.pick(['id', 'dueDate', 'title', 'priority'])
-            R.sortBy(R.prop('dueDate')),
-            console.log,
-        ))
+// 第二版 (来自 underscore 的实现)
+var memorize = function(func, hasher) {
+    var memoize = function(key) {
+        var cache = memoize.cache;
+        var address = '' + (hasher ? hasher.apply(this, arguments) : key);
+        if (!cache[address]) {
+            cache[address] = func.apply(this, arguments);
+        }
+        return cache[address];
+    };
+    memoize.cache = {};
+    return memoize;
 };
 ```
+
+从这个实现可以看出，underscore 默认使用 function 的第一个参数作为 key，所以如果直接使用
+
+```js
+var add = function(a, b, c) {
+  return a + b + c
+}
+
+var memoizedAdd = memorize(add)
+
+memoizedAdd(1, 2, 3) // 6
+memoizedAdd(1, 2, 4) // 6
+```
+
+肯定是有问题的，如果要支持多参数，我们就需要传入 hasher 函数，自定义存储的 key 值。所以我们考虑使用 JSON.stringify：
+
+```js
+var memoizedAdd = memorize(add, function(){
+    var args = Array.prototype.slice.call(arguments)
+    return JSON.stringify(args)
+})
+
+console.log(memoizedAdd(1, 2, 3)) // 6
+console.log(memoizedAdd(1, 2, 4)) // 7
+```
+
+如果使用 JSON.stringify，参数是对象的问题也可以得到解决，因为存储的是对象序列化后的字符串。
+
+## 适用场景
+
+我们以斐波那契数列为例：
+
+```js
+var count = 0;
+var fibonacci = function(n){
+    count++;
+    return n < 2? n : fibonacci(n-1) + fibonacci(n-2);
+};
+for (var i = 0; i <= 10; i++){
+    fibonacci(i)
+}
+
+console.log(count) // 453
+```
+
+我们会发现最后的 count 数为 453，也就是说 fibonacci 函数被调用了 453 次！也许你会想，我只是循环到了 10，为什么就被调用了这么多次，所以我们来具体分析下：
+
+```js
+当执行 fib(0) 时，调用 1 次
+
+当执行 fib(1) 时，调用 1 次
+
+当执行 fib(2) 时，相当于 fib(1) + fib(0) 加上 fib(2) 本身这一次，共 1 + 1 + 1 = 3 次
+
+当执行 fib(3) 时，相当于 fib(2) + fib(1) 加上 fib(3) 本身这一次，共 3 + 1 + 1 = 5 次
+
+当执行 fib(4) 时，相当于 fib(3) + fib(2) 加上 fib(4) 本身这一次，共 5 + 3 + 1 = 9 次
+
+当执行 fib(5) 时，相当于 fib(4) + fib(3) 加上 fib(5) 本身这一次，共 9 + 5 + 1 = 15 次
+
+当执行 fib(6) 时，相当于 fib(5) + fib(4) 加上 fib(6) 本身这一次，共 15 + 9 + 1 = 25 次
+
+当执行 fib(7) 时，相当于 fib(6) + fib(5) 加上 fib(7) 本身这一次，共 25 + 15 + 1 = 41 次
+
+当执行 fib(8) 时，相当于 fib(7) + fib(6) 加上 fib(8) 本身这一次，共 41 + 25 + 1 = 67 次
+
+当执行 fib(9) 时，相当于 fib(8) + fib(7) 加上 fib(9) 本身这一次，共 67 + 41 + 1 = 109 次
+
+当执行 fib(10) 时，相当于 fib(9) + fib(8) 加上 fib(10) 本身这一次，共 109 + 67 + 1 = 177 次
+```
+
+所以执行的总次数为：177 + 109 + 67 + 41 + 25 + 15 + 9 + 5 + 3 + 1 + 1 = 453 次！
+
+如果我们使用函数记忆呢？
+
+```js
+var count = 0;
+var fibonacci = function(n) {
+    count++;
+    return n < 2 ? n : fibonacci(n - 1) + fibonacci(n - 2);
+};
+
+fibonacci = memorize(fibonacci)
+
+for (var i = 0; i <= 10; i++) {
+    fibonacci(i)
+}
+
+console.log(count) // 12
+```
+
+我们会发现最后的总次数为 12 次，因为使用了函数记忆，调用次数从 453 次降低为了 12 次!
+
+兴奋的同时不要忘记思考：为什么会是 12 次呢？
+
+从 0 到 10 的结果各储存一遍，应该是 11 次呐？咦，那多出来的一次是从哪里来的？
+
+所以我们还需要认真看下我们的写法，在我们的写法中，其实我们用生成的 fibonacci 函数覆盖了原本了 fibonacci 函数，当我们执行 fibonacci(0) 时，执行一次函数，cache 为 {0: 0}，但是当我们执行 fibonacci(2) 的时候，执行 fibonacci(1) + fibonacci(0)，因为 fibonacci(0) 的值为 0，`!cache[address]` 的结果为 true，又会执行一次 fibonacci 函数。原来，多出来的那一次是在这里！
+
+## 多说一句
+
+也许你会觉得在日常开发中又用不到 fibonacci，这个例子感觉实用价值不高呐，其实，这个例子是用来表明一种使用的场景，也就是如果需要大量重复的计算，或者大量计算又依赖于之前的结果，便可以考虑使用函数记忆。而这种场景，当你遇到的时候，你就会知道的。
 
 ## 专题系列
 
