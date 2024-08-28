@@ -44,6 +44,7 @@ function quickSort(arr) {
 console.log(quickSort([1,3,8, 5, 9, 3,4,7]));
 function quickSortInPlace(arr) {
   function swap(arr, a, b) {
+    console.log('in swap', arr, a, b)
     var temp = arr[a];
     arr[a] = arr[b];
     arr[b] = temp;
@@ -61,13 +62,17 @@ function quickSortInPlace(arr) {
   }
 
   function sort(arr, left, right){
-    var storeIndex = partition(arr, left, right);
-    sort(arr, left, storeIndex - 1);
-    sort(arr, storeIndex + 1, right);
+    if(left < right) {
+      var storeIndex = partition(arr, left, right);
+      sort(arr, left, storeIndex - 1);
+      sort(arr, storeIndex + 1, right);
+    }
   }
 
   sort(arr, 0, arr.length - 1); 
   return arr;
-
-
 }
+
+console.log(quickSortInPlace([6, 5, 4, 3, 2, 1]));
+console.log(quickSortInPlace([1,3,8, 5, 9, 3,4,7]));
+
