@@ -1,4 +1,4 @@
-# EventLoop
+# EventLoop（浏览器）
 
 ## 进程与线程
   **js为单线程语言**。最早javaScript这门语言单是一门运行在浏览器端的脚本语言，他的目的是为了实现页面上的动态交互。而实现页面交互的核心就是dom操作，这也就决定了他必须使用单线程模型，否则就会出现很复杂的线程同步问题。
@@ -21,7 +21,7 @@
   异步操作是指程序中的操作可以同时进行，不需要等待上一个操作完成才能进行下一个操作。异步操作通常会通过回调函数、Promise 或者 async/await 等机制来处理。这种执行方式可以提高程序的效率和响应速度，特别适合处理大量的I/O操作或网络请求。
 
 ## 调用栈与任务队列
-  js  在自上而下的执行过程中会涉及到执行栈（调用栈）和任务队列，执行中的代码会放在执行栈中执行，而宏任务与微任务会放在任务队列中“等待”执行。
+  js  在自上而下的执行过程中会涉及到调用栈和任务队列，执行中的代码会放在调用栈中按序执行，而宏任务与微任务会放在任务队列中“等待”执行。
 
   ### 栈与队列
   栈与队列均为结构化内存，栈遵循LIFO后进先出规则，队列遵循FIFO先进先出规则。
@@ -58,8 +58,8 @@
     - script(整体代码)
     - setTimeout
     - setInterval
-    - setImmediate
-    - I/O
+    - setImmediate（node）
+    - I/O（node）
     - UI render
 
 
@@ -76,7 +76,7 @@
     - process.nextTick(node)
     - mutationObserver(html5新特性)
 
-## EventLoop 
+## EventLoop事件循环机制 （浏览器）
   事件循环机制：
   - 首先JavaScript代码从上到下执行，遇到同步代码直接执行；
   - 每遇到定时器等宏任务会将任务放在宏任务队列中；
@@ -135,3 +135,90 @@
   // script start => async1 start => async2 => promise1 => async1 end => promise2 => setTimeout
 
   ```
+
+# EventLoop（nodeJS）
+  ## node.js相对于浏览器而言不同的异步任务API
+  ### 微任务（micro task）
+  - Process.nextTick
+    Process.nextTick 的执行时机即是在同步任务执行完毕后，即将将 微任务 推入栈中时优先会将 Process.nextTick 推入栈中进行执行。
+    Process.nextTick 简单来说就是表示当前调用栈清空后立即执行的逻辑，其实完全可以将它理解成一个 micro （虽然官方并不将它认为是 EventLoop 中的一部分）。
+
+  ### 宏任务（macro task）
+  - setImmediate
+    setImmediate是 NodeJs 中的 API
+    当要异步地（但要尽可能快）执行某些代码时，使用 setImmediate() 函数。
+  - I/O操作
+    NodeJs 是 JavaScript 脱离了浏览器 V8 的执行环境下的另一个 Runtime，这也就意味着利用 NodeJS 我们可以进行 I/O 操作（比如从网络读取、访问数据库或文件系统）。
+    关于 I/O 操作，它产生的 callback 会放在宏任务队列来处理。
+
+  ## node.js的事件循环机制
+    其实 NodeJs 中的事件循环机制主要就是基于以下几个阶段，但是对于我们比较重要的来说仅仅只有 timers、poll 和 check 阶段，因为这三个阶段影响着我们代码书写的执行顺序。
+    至于 pending callbacks、idle, prepare 、close callbacks 其实对于我们代码的执行顺序并不存在什么强耦合，甚至有些时候我们完全不必在意他们。
+
+    - timers 阶段【重要】
+      在 timers 阶段会执行已经被 setTimeout() 和 setInterval() 的调度回调函数。
+
+    - pending callbacks 阶段。
+      上一次循环队列中，还未执行完毕的会在这个阶段进行执行。比如延迟到下一个 Loop 之中的 I/O 操作。
+
+    - idle, prepare
+      其实这一步无需过多关注，它仅仅是在 NodeJs 内部调用。我们无法进行操作这一步，所以仅仅了解存在 idle prepare 这一层即可。
+
+    - poll【重要】
+      这一阶段被称为轮询阶段，它主要会检测新的 I/O 相关的回调，需要注意的是这一阶段会存在阻塞（也就意味着这之后的阶段可能不会被执行）。
+
+    - check【重要】
+      check 阶段会检测 setImmediate() 回调函数在这个阶段进行执行。
+
+    - close callbacks
+      这个阶段会执行一系列关闭的回调函数，比如如：socket.on('close', ...)。
+
+  ## nodeJS的EventLoop整体流程
+    [图]('./eventloop.png')
+    注意，图中的Loop是从 timer 阶段之后开始的 Loop 。
+    - 按序执行同步代码，主调用栈执行结束
+    - 优先处理 prcoess.nextTick 以及之前产生的所有微任务（process.nextTick 可以理解为拥有最高优先级的微任务）
+    - 进入宏任务处理阶段
+      - 进入timers 定时器 回调处理阶段
+        进入 timers 阶段时，会检查 timers 中是否存在满足条件的定时器任务。当存在时，**会依次取出对应的 timer （定时器产生的回调）推入 stack （JS执行栈）中进行执行**。
+        **每次任务执行完毕会清空随之产生的 Process.nextTick以及微任务**。
+      - poll阶段
+        此后，在清空队列中所有的 timer 后，Loop 进入 poll 阶段进行轮询，此阶段首先会检查是否存在对应 I/O 的回调。
+        如果**存在 I/O 相关 回调，那么推入对应 JS 调用栈进行执行，同样每次任务执行完毕会伴随清空随之产生的 Process.nextTick 以及 微任务**。
+        当然，如果本次阶段即使产生了 timer 也并不会在本次 Loop 中执行，因为此时 EventLoop 已经到达 poll 阶段了。
+        需要额外注意的是在 poll 轮询阶段，会发生以下情况：
+          - 如果 轮询 队列 不是空的 ，事件循环将循环访问回调队列并同步执行它们，直到队列已用尽，或者达到了与系统相关的硬性限制。
+
+
+          - 如果 轮询 队列 是空的 ，还有两件事发生：
+            - 如果脚本被 setImmediate() 调度，则事件循环将结束 poll(轮询) 阶段，并继续 check(检查) 阶段以执行那些被调度的脚本。
+            - 如果脚本 未被 setImmediate()调度，则事件循环将等待回调被添加到队列中，然后立即执行。
+    ```js
+    setImmediate(() => {
+      console.log('immediate1 开始')
+      Promise.resolve().then(() => console.log('immediate' + 1, '微任务执行'));
+      Promise.resolve().then(() => console.log('immediate' + 2, '微任务执行'));
+      console.log('immediate1 结束');
+    });
+
+    setImmediate(() => {
+      console.log('immediate2 开始');
+      Promise.resolve().then(() => console.log('immediate' + 3, '微任务执行'));
+      Promise.resolve().then(() => console.log('immediate' + 4, '微任务执行'));
+      console.log('immediate2 结束');
+    });
+    /*  log
+        immediate1 开始
+        immediate1 结束
+        immediate1 微任务执行
+        immediate2 微任务执行
+        immediate2 开始
+        immediate2 结束
+        immediate3 微任务执行
+        immediate4 微任务执行 */
+
+    ```
+
+# nodeJs与浏览器的事件循环
+  在分别了解了不同环境下的 EventLoop 执行机制后，会发现其实浏览器中和 Node 中的事件循环 EventLoop 本质上执行机制是完全相同的，都是执行完一个宏(macro)任务后清空本次队列中的微(micro)任务，然后再执行下一个宏任务。
+  只不过唯一不同的就是 NodeJs 中针对于 EventLoop 实现一些自定义的额外队列，它是基于Libuv 中自己实现的事件机制。
