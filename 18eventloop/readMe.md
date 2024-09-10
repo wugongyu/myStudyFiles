@@ -177,7 +177,7 @@
     [图]('./eventloop.png')
     注意，图中的Loop是从 timer 阶段之后开始的 Loop 。
     - 按序执行同步代码，主调用栈执行结束
-    - 优先处理 prcoess.nextTick 以及之前产生的所有微任务（process.nextTick 可以理解为拥有最高优先级的微任务）
+    - 优先处理 process.nextTick 以及之前产生的所有微任务（process.nextTick 可以理解为拥有最高优先级的微任务）
     - 进入宏任务处理阶段
       - 进入timers 定时器 回调处理阶段
         进入 timers 阶段时，会检查 timers 中是否存在满足条件的定时器任务。当存在时，**会依次取出对应的 timer （定时器产生的回调）推入 stack （JS执行栈）中进行执行**。
