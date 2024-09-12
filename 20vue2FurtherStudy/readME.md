@@ -97,3 +97,7 @@
     - 文本节点 -- createTextNode _v
     - 元素节点 -- createElement _c
     - 注释节点 -- createEmptyNode _e
+
+  ## vue 的实例方法与全局API
+  Vue 的实例方法是放在Vue.prototype上的，例如vm.$nextTick（Vue.prototype.$nextTick）
+  ，而全局API是在vue.js中，例如Vue.nextTick
