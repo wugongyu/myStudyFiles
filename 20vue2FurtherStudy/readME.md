@@ -135,4 +135,6 @@
     【初始化顺序】： 先初始化props，接着methods，然后data，computed, 最后watch。注意，以上各个属性是存在才进行数据初始化。
 - 模板编译阶段
 - 挂载阶段
+  beforeMount, mounted beforeUpdate updated
 - 卸载阶段
+  beforeDestroy destroyed
