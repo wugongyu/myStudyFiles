@@ -1,0 +1,14 @@
+{
+  "name": "21vue3furtherstudy",
+  "version": "1.0.0",
+  "description": "vue3 further study",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "vue": "^3.5.6"
+  }
+}

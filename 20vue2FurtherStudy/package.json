@@ -1,0 +1,14 @@
+{
+  "name": "20vue2furtherstudy",
+  "version": "1.0.0",
+  "description": "vue2 further study",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "vue": "^2.7.16"
+  }
+}
