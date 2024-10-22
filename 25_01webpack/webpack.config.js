@@ -8,20 +8,9 @@ module.exports = {
   mode: 'development',
   entry: {
     index: './src/index.js',
-    // another: './src/another-module.js',
-    // 在配置文件中配置 dependOn 选项，以在多个 chunk 之间共享模块
-    // index: {
-    //   import: './src/index.js',
-    //   dependOn: 'shared'
-    // },
-    // another: {
-    //   import: './src/another-module.js',
-    //   dependOn: 'shared',
-    // },
-    // shared: 'lodash',
   },
   output: {
-    filename: '[name].bundle.js',
+    filename: '[name].[contenthash].js', // [contenthash] 将根据资源内容创建唯一哈希值。当资源内容发生变化时，[contenthash] 也会发生变化
     path: path.resolve(__dirname, 'dist'),
     clean: true, // 构建前清理dist文件夹
   },
@@ -29,13 +18,20 @@ module.exports = {
     static: './dist', //  将 dist 目录下的文件作为可访问资源部署在 localhost:8080
   },
   // 想要在一个 HTML 页面上使用多个入口起点，还需设置 optimization.runtimeChunk: 'single'
-  // optimization: {
-  //   // runtimeChunk: 'single',
-  //   // 公共依赖，多入口均单独打包
-  //   splitChunks: {
-  //     chunks: 'all',
-  //   }
-  // },
+  optimization: {
+    runtimeChunk: 'single', // 它还会将 runtime 代码拆分为一个单独的 chunk
+    // 将第三方库提取到单独的 vendor chunk
+    splitChunks: {
+      // chunks: 'all', // 公共依赖，多入口均单独打包
+      cacheGroups: {
+        vendor: {
+          test: /[\\/]node_modules[\\/]/,
+          name: 'vendors',
+          chunks: 'all',
+        }
+      }
+    }
+  },
   plugins: [
     new HtmlWebpackPlugin({})
   ],
