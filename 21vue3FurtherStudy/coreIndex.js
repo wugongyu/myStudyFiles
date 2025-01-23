@@ -10,6 +10,14 @@ const bucket = new WeakMap(); // 存储副作用函数的桶
 
 let activeEffect; // 全局变量用于存储被注册了的副作用函数
 const effectStack = []; // 新增一个副作用函数栈，解决副作用函数嵌套问题
+const ITERATE_KEY = Symbol(); // for...in循环追踪的key
+
+const TriggerType = {
+  SET: 'SET',
+  ADD: 'ADD',
+  DELETE: 'DELETE',
+}
+
 
 /*
   effect用于注册副作用函数
@@ -17,7 +25,7 @@ const effectStack = []; // 新增一个副作用函数栈，解决副作用函�
     1. 支持调度器scheduler传参，将控制权交给用户
     2： 支持lazy传参，只有非lazy的时候才执行副作用函数
 */ 
-function effect(fn, options) {
+function effect(fn, options = {}) {
   // activeEffect = fn; // 调用effect注册副作用函数时，将fn传值给activeEffect
   // fn();
 
@@ -71,11 +79,15 @@ function track(target, key) {
   activeEffect.deps.push(deps);
 }
 
-// 将副作用函数从存储的桶中取出来并调用（在set拦截函数内调用trigger函数触发变化）
-function trigger(target, key) {
+/*
+将副作用函数从存储的桶中取出来并调用（在set拦截函数内调用trigger函数触发变化）
+ type：TriggerType --操作类型
+*/ 
+function trigger(target, key, type) {
   let depsMap = bucket.get(target);
   if(!depsMap) return;
   const effects = depsMap.get(key);
+
   // effects && effects.forEach(fn => {
   //   fn()
   // }); 
@@ -92,7 +104,20 @@ function trigger(target, key) {
     if(fn !== activeEffect) {
       effectFnToRun.add(fn); // 避免无限递归调用：如果trigger触发执行的副作用函数与当前执行的副作用函数相同，则不触发执行。
     }
-  })
+  });
+
+  // 仅添加|删除属性的时候才触发与ITERATE_KEY相关联的副作用函数，以减少性能消耗
+  if([TriggerType.ADD, TriggerType.DELETE].includes(type)) {
+    const iterateEffects = depsMap.get(ITERATE_KEY); // 获取到与ITERATE_KEY相关联的副作用函数
+    // 将与ITERATE_KEY相关的副作用函数添加到effectFnToRun中
+    iterateEffects && iterateEffects.forEach(fn => {
+      if(fn !== activeEffect) {
+        effectFnToRun.add(fn);
+      }
+    })
+  }
+
+  // 副作用函数的执行
   effectFnToRun && effectFnToRun.forEach((fn =>  {
       if(fn.options.scheduler) {
         fn.options.scheduler(fn); // 存在调度器，则调用调度器并回传当前副作用函数
@@ -140,30 +165,62 @@ function computed(getter) {
   监听属性
   source-响应式数据
   cb-回调函数
+  options - 相关配置
+  options.immediate --指定回调函数立即执行
+  options.flush -- 指定回调函数执行时机  pre|post|sync
 */ 
 
-function watch(source, cb) {
+function watch(source, cb, options = {}) {
   let getter;
   if(typeof source === 'function') {
     getter = source;
   } else {
     getter = traverse(source);
   }
+  let cleanup; // 用来存储用户定义的过期回调
+  // 定义onInValidate函数，用来给用户注册过期回调
+  function onInValidate(fn) {
+    cleanup = fn;
+  }
   let newValue, oldValue;
+
+  // 调度器逻辑抽取为独立函数
+  const schedulerJob = () => {
+    // 在执行回调函数cb之前先调用过期回调
+    if(cleanup) {
+      cleanup();
+    }
+    newValue = effectFn(); // 获取新值
+    cb(newValue, oldValue, onInValidate);// 数据变化时调用回调函数, 传入onInValidate函数供用户注册过期回调
+    oldValue = newValue; // 更新旧值
+  }
   const effectFn = effect(
     () => {
       getter()
     }, // 递归的读取响应式数据，确保任意属性变化时能够触发回调函数的执行
     {
-      scheduler() {
-        newValue = effectFn(); // 获取新值
-        cb(newValue, oldValue);// 数据变化时调用回调函数
-        oldValue = newValue; // 更新旧值
+      // scheduler() {
+      //   newValue = effectFn(); // 获取新值
+      //   cb(newValue, oldValue);// 数据变化时调用回调函数
+      //   oldValue = newValue; // 更新旧值
+      // },
+      scheduler: () => {
+        if(options.flush === 'post') {
+          // 调度函数需要将副作用函数放到微任务里，待DOM更新完毕之后再执行
+          const p = Promise.resolve();
+          p.then(schedulerJob);
+        } else {
+          schedulerJob();
+        }
       },
       lazy: true,
     }
   );
-  oldValue = effectFn(); // 手动调用获取旧值
+  if(options.immediate) {
+    schedulerJob(); // immediate为true时立即执行调度器函数，从而触发回调执行
+  } else {
+    oldValue = effectFn(); // 手动调用获取旧值
+  }
 }
 
 
@@ -178,6 +235,69 @@ function traverse(value, seen = new Set()) {
 
 }
 
+/*
+  创建响应式数据
+*/ 
+
+function reactive(obj) {
+  return new Proxy(obj, {
+    // 拦截读取操作
+    get(target, key, receiver) {
+      track(target, key);
+      if(key === 'row') {
+        // 代理对象可以通过row属性访问原始数据
+        return target;
+      }
+      // return target[key];
+      return Reflect.get(target, key, receiver); // 更正函数调用中的this指向问题
+    },
+    // 拦截in操作符
+    has(target, key) {
+      track(target, key);
+      return  Reflect.has(target, key);
+    },
+    /*
+    拦截for...in循环
+    （注意，当为对象添加/删除新属性，会对for...in循环次数产生影响，
+    此时则需要触发与ITERATE_KEY相关联的副作用函数重新执行，
+    而修改已有属性时，不会对对for...in循环的执行次数产生影响
+    ）
+    */ 
+    ownKeys(target) {
+      track(target, ITERATE_KEY); // 建立副作用函数与ITERATE_KEY的联系
+      return Reflect.ownKeys(target)
+    },
+    // 拦截设置操作
+    set(target, key, newValue, receiver) {
+      const oldValue = target[key];
+      const type = Object.prototype.hasOwnProperty.call(target, key) ? TriggerType.SET : TriggerType.ADD; // 获取当前设置操作的类型（添加ADD，修改SET）
+      // target[key] = newValue;
+      const res = Reflect.set(target, key, newValue, receiver);
+
+      if(target === receiver.row) {
+        // 只有当receiver是target 的代理对象时才进行更新，屏蔽由原型引起的重复更新问题
+
+        if(oldValue !== newValue && (oldValue === oldValue || newValue === newValue)) {
+          // 只有当新旧值不全等，或新旧值不都为NaN才触发响应（注意 NaN === NaN 结果为false， NaN !== NaN结果为true），减少不必要的更新
+          trigger(target, key, type);
+        }
+      }
+      
+      return res;
+    },
+    // 拦截删除操作
+    deleteProperty(target, key) {
+      const hadKey = Object.prototype.hasOwnProperty.call(target, key);
+      const res = Reflect.deleteProperty(target, key);
+      if(hadKey && res) {
+        // 仅当删除的是对象自身的属性，并且成功删除时才触发更新
+        trigger(target, key, TriggerType.DELETE);
+      }
+      return res;
+    }
+  })
+}
+
 
 
 
@@ -187,39 +307,40 @@ function traverse(value, seen = new Set()) {
 
 let data = { ok: true, text: 'this is reactive test', foo: 1, bar: 2 };
 
-const obj = new Proxy(data, {
-  get(target, key) {
-    track(target, key);
-    return target[key];
-  },
-  set(target, key, newValue) {
-    target[key] = newValue;
-    trigger(target, key);
-  }
-})
+const obj = reactive(data);
 
 
-function effectFn() {
-  // document.body.innerText = obj.text;
-  document.body.innerText = obj.ok ? obj.text : 'not';
-}
+// function effectFn() {
+//   // document.body.innerText = obj.text;
+//   document.body.innerText = obj.ok ? obj.text : 'not';
+// }
 
-effect(effectFn);
+// effect(effectFn);
 
-const customEffectFn = effect(() => {
-  console.log(obj.text);
-}, {
-  lazy: true,
-});
-customEffectFn();
+// const customEffectFn = effect(() => {
+//   console.log(obj.text);
+// }, {
+//   lazy: true,
+// });
+// customEffectFn();
 
 const sumRes = computed(() => {
   return obj.foo + obj.bar
 });
 
-effect(() => {
-  console.log(sumRes.value)
-});
 
-obj.foo ++;
+window.onload = () => {
+  effect(() => {
+    const box = document.getElementById('text-wrapper');
+    if(box) {
+      box.innerText = sumRes.value;
+    }
+    console.log(sumRes.value)
+  });
+  const btnElement = document.getElementById('btn');
+  console.log(btnElement);
+  btnElement && btnElement.addEventListener('click', function() {
+    obj.foo ++;
+  })
+}
 
