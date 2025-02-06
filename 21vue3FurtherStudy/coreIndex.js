@@ -82,8 +82,9 @@ function track(target, key) {
 /*
 将副作用函数从存储的桶中取出来并调用（在set拦截函数内调用trigger函数触发变化）
  type：TriggerType --操作类型
+ newVal: 触发响应的新值
 */ 
-function trigger(target, key, type) {
+function trigger(target, key, type, newVal) {
   let depsMap = bucket.get(target);
   if(!depsMap) return;
   const effects = depsMap.get(key);
@@ -116,6 +117,36 @@ function trigger(target, key, type) {
       }
     })
   }
+
+  // 当添加操作且操作对象为数组时
+  if(TriggerType.ADD === type && Array.isArray(target)) {
+    // 将与数组length相关联的副作用函数取出并添加到effectFnToRun中，待执行
+    const lengthEffects = depsMap.get('length');
+    lengthEffects && lengthEffects.forEach(fn => {
+      if(fn !== activeEffect) {
+        effectFnToRun.add(fn);
+      }
+    })
+  }
+
+  /*
+  当修改数组 length 属性值时，只有那些索引值⼤于或等于新的 length 属
+  性值的元素才需要触发响应。
+  */ 
+
+  if(Array.isArray(target) && key === 'length') {
+    depsMap.forEach((dEffects, eKey) => {
+      if(eKey >= newVal) {
+        // 将索引值⼤于或等于新的 length 属性值的元素相关联的副作用函数取出并添加到待执行队列effectFnToRu中
+        dEffects.forEach(fn => {
+          if(fn !== activeEffect) {
+            effectFnToRun.add(fn);
+          }
+        })
+      }
+    })
+  }
+
 
   // 副作用函数的执行
   effectFnToRun && effectFnToRun.forEach((fn =>  {
@@ -236,20 +267,55 @@ function traverse(value, seen = new Set()) {
 }
 
 /*
+  重写数组includes| indexOf, lastIndexOf方法，
+  解决直接把原始对象obj作为参数传递给
+includes ⽅法，返回值为false的问题（原因为this指向代理对象）
+*/ 
+const arrayInstrumentations = {};
+
+['includes', 'indexOf', 'lastIndexOf'].forEach(method => {
+  const originMethod = Array.prototype[method];
+  arrayInstrumentations[method] = function(...args) {
+    let res = originMethod.apply(this, args); // this指向的是代理对象，先在代理对象中查找
+    if(res === false || res === -1) {
+      res = originMethod.apply(this.raw, args); // this.row 为原始对象
+    }
+    return res;
+  }
+})
+
+/*
   创建响应式数据
+  isShallow -- 是否创建浅响应数据
+  isReadonly -- 是否只可读
 */ 
 
-function reactive(obj) {
+function createReactive(obj, isShallow = false, isReadonly = false) {
   return new Proxy(obj, {
     // 拦截读取操作
     get(target, key, receiver) {
-      track(target, key);
-      if(key === 'row') {
-        // 代理对象可以通过row属性访问原始数据
+      if(key === 'raw') {
+        // 代理对象可以通过raw属性访问原始数据
         return target;
       }
+
+      // 不应该在副作⽤函数与 Symbol.iterator 这类 symbol值之间建⽴响应联系
+      if(!isReadonly && typeof key !== 'symbol') {
+        track(target, key);
+      }
+
+      // 拦截数组方法
+      if(Array.isArray(target) && arrayInstrumentations.hasOwnProperty(key)) {
+        return Reflect.get(arrayInstrumentations, key, receiver);
+      }
+
+      const res = Reflect.get(target, key, receiver);// 更正函数调用中的this指向问题
+      if(isShallow) return res; // 浅层响应数据，直接返回
+      if(typeof res === 'object' && res !== null) {
+        return isReadonly ? readonly(res) : reactive(res); // 包装成只读 | 响应式数据并返回
+      }
       // return target[key];
-      return Reflect.get(target, key, receiver); // 更正函数调用中的this指向问题
+      return res;
     },
     // 拦截in操作符
     has(target, key) {
@@ -264,22 +330,32 @@ function reactive(obj) {
     ）
     */ 
     ownKeys(target) {
-      track(target, ITERATE_KEY); // 建立副作用函数与ITERATE_KEY的联系
+      track(target, Array.isArray(target) ? 'length' : ITERATE_KEY); // 建立副作用函数与ITERATE_KEY | length(数组)的联系
       return Reflect.ownKeys(target)
     },
     // 拦截设置操作
     set(target, key, newValue, receiver) {
+      if(isReadonly) {
+        console.warn(`属性${key}是只读的`); // 只读属性打印信息并返回
+        return true;
+      }
       const oldValue = target[key];
-      const type = Object.prototype.hasOwnProperty.call(target, key) ? TriggerType.SET : TriggerType.ADD; // 获取当前设置操作的类型（添加ADD，修改SET）
+      let type;
+      if(Array.isArray(target)) {
+        // 代理目标为数组，检测当前设置的索引是否大于数组长度，是则为新增操作，否则为编辑操作
+        type = Number(key) < target.length ? TriggerType.SET : TriggerType.ADD;
+      } else {
+        type = Object.prototype.hasOwnProperty.call(target, key) ? TriggerType.SET : TriggerType.ADD; // 获取当前设置操作的类型（添加ADD，修改SET）
+      }
       // target[key] = newValue;
       const res = Reflect.set(target, key, newValue, receiver);
 
-      if(target === receiver.row) {
+      if(target === receiver.raw) {
         // 只有当receiver是target 的代理对象时才进行更新，屏蔽由原型引起的重复更新问题
 
         if(oldValue !== newValue && (oldValue === oldValue || newValue === newValue)) {
           // 只有当新旧值不全等，或新旧值不都为NaN才触发响应（注意 NaN === NaN 结果为false， NaN !== NaN结果为true），减少不必要的更新
-          trigger(target, key, type);
+          trigger(target, key, type, newValue);
         }
       }
       
@@ -287,6 +363,10 @@ function reactive(obj) {
     },
     // 拦截删除操作
     deleteProperty(target, key) {
+      if(isReadonly) {
+        console.warn(`属性${key}是只读的`); // 只读属性打印信息并返回
+        return true;
+      }
       const hadKey = Object.prototype.hasOwnProperty.call(target, key);
       const res = Reflect.deleteProperty(target, key);
       if(hadKey && res) {
@@ -296,6 +376,28 @@ function reactive(obj) {
       return res;
     }
   })
+}
+
+const reactiveMap = new Map(); // 定义一个Map，存储原始对象到代理对象之间的映射
+
+function reactive(obj) {
+  const existProxy = reactiveMap.get(obj);
+  if(existProxy) return existProxy; // 返回已有的代理对象
+  const proxy = createReactive(obj);
+  reactiveMap.set(obj, proxy);
+  return proxy; // 返回新建代理对象
+}
+
+function shallowReactive(obj) {
+  return createReactive(obj, true);
+}
+
+function readonly(obj) {
+  return createReactive(obj, false, true);
+}
+
+function shallowReadonly(obj) {
+  return createReactive(obj, true, true);
 }
 
 
@@ -343,4 +445,27 @@ window.onload = () => {
     obj.foo ++;
   })
 }
+
+
+const arr = reactive(['ts1']);
+
+effect(() => {
+  console.log(arr.length, 'arr.length');
+  // for (const key in arr) {
+  //   console.log(arr[key]);
+  // }
+  for (const val of arr) {
+    console.log(val, 'arr val')
+  }
+});
+
+arr[1] = 'ts2';
+
+arr.length = 0;
+
+const newObj = {};
+const newArr = reactive([newObj]);
+console.log(newArr.includes(newArr[0])); // true
+console.log(newArr.includes(newObj)); // true
+
 
