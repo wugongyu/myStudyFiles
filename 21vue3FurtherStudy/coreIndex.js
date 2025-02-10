@@ -11,6 +11,8 @@ const bucket = new WeakMap(); // 存储副作用函数的桶
 let activeEffect; // 全局变量用于存储被注册了的副作用函数
 const effectStack = []; // 新增一个副作用函数栈，解决副作用函数嵌套问题
 const ITERATE_KEY = Symbol(); // for...in循环追踪的key
+const MAP_KEY_ITERATE_KEY = Symbol(); //  MAP类型的数据循环遍历key值时追踪的key
+let shouldTrack = true; // 全局是否追踪标志，默认追踪
 
 const TriggerType = {
   SET: 'SET',
@@ -65,7 +67,7 @@ function cleanup(effectFn) {
 // 将副作用函数activeEffect放到存储的bucket桶中（在get拦截函数内调用track函数追踪变化）
 // 映射关系 target -> key -> effectFn (数据类型： WeakMap Map Set)
 function track(target, key) {
-  if(!activeEffect) return;
+  if(!activeEffect || !shouldTrack) return;
   let depsMap = bucket.get(target);
   if(!depsMap) {
     bucket.set(target, (depsMap = new Map()));
@@ -107,11 +109,34 @@ function trigger(target, key, type, newVal) {
     }
   });
 
-  // 仅添加|删除属性的时候才触发与ITERATE_KEY相关联的副作用函数，以减少性能消耗
-  if([TriggerType.ADD, TriggerType.DELETE].includes(type)) {
+  /*
+    仅添加|删除属性的时候才触发与ITERATE_KEY相关联的副作用函数，以减少性能消耗
+    如果操作类型是 SET，并且⽬标对象是 Map 类型的数据，
+    也应该触发那些与 ITERATE_KEY 相关联的副作⽤函数重新执⾏
+  */ 
+  if([TriggerType.ADD, TriggerType.DELETE].includes(type) || 
+    (type === TriggerType.SET && Object.prototype.toString.call(target) === '[object Map]')
+  ) {
     const iterateEffects = depsMap.get(ITERATE_KEY); // 获取到与ITERATE_KEY相关联的副作用函数
     // 将与ITERATE_KEY相关的副作用函数添加到effectFnToRun中
     iterateEffects && iterateEffects.forEach(fn => {
+      if(fn !== activeEffect) {
+        effectFnToRun.add(fn);
+      }
+    })
+  }
+
+  /*
+    操作类型为ADD|DELETE
+    并且数据类型为map
+    触发那些与 MAP_KEY_ITERATE_KEY 相关联的副作⽤函数重新执⾏
+  */ 
+  if([TriggerType.ADD, TriggerType.DELETE].includes(type) && 
+    (Object.prototype.toString.call(target) === '[object Map]')
+  ) {
+    const mapKeyIterateEffects = depsMap.get(MAP_KEY_ITERATE_KEY);// 获取到与MAP_KEY_ITERATE_KEY相关联的副作用函数
+    // 将与MAP_KEY_ITERATE_KEY相关的副作用函数添加到effectFnToRun中
+    mapKeyIterateEffects && mapKeyIterateEffects.forEach(fn => {
       if(fn !== activeEffect) {
         effectFnToRun.add(fn);
       }
@@ -273,7 +298,7 @@ includes ⽅法，返回值为false的问题（原因为this指向代理对象�
 */ 
 const arrayInstrumentations = {};
 
-['includes', 'indexOf', 'lastIndexOf'].forEach(method => {
+;['includes', 'indexOf', 'lastIndexOf'].forEach(method => {
   const originMethod = Array.prototype[method];
   arrayInstrumentations[method] = function(...args) {
     let res = originMethod.apply(this, args); // this指向的是代理对象，先在代理对象中查找
@@ -282,7 +307,173 @@ const arrayInstrumentations = {};
     }
     return res;
   }
-})
+});
+
+/*
+重写数组方法push、pop、shift、unshift 以及 splice ⽅法
+调整追踪方式
+数组的 push 等⽅法在语义上是修改操作，⽽⾮读取操作，但是会间接读取length
+属性，导致length属性与副作用函数之间建立了联系。
+解决方法为： 重写对应方法，在调用方法时禁用追踪，调用结束后重启追踪，从而避免
+建⽴响应联系所产⽣其他的副作⽤
+*/ 
+;['push', 'pop', 'shift', 'unshift', 'splice'].forEach(method => {
+  const originMethod = Array.prototype[method];
+  arrayInstrumentations[method] = function(...args) {
+    shouldTrack = false;
+    const res = originMethod(this, args); /* 当 push等 ⽅法间接读取
+    length 属性值时，由于此时是禁⽌追踪的状态，所以 length 属性
+    与副作⽤函数之间不会建⽴响应联系。 */ 
+    shouldTrack = true;
+    return res;
+  }
+});
+
+/*
+重写map，set数据类型的set, add等方法
+*/ 
+
+const mutableInstrumentations = {
+  add(key) {
+    const target = this.raw;
+    const hadKey = target.has(key);
+    const res = target.add(key);
+    if(!hadKey) {
+      trigger(target, key, TriggerType.ADD); // 值不存在时触发响应追踪
+    }
+    return res;
+  },
+  delete(key) {
+    const target = this.raw;
+    const hadKey = target.has(key);
+    const res = target.delete(key)
+    if(hadKey) {
+      trigger(target, key, TriggerType.DELETE); // 删除成功触发响应追踪
+    }
+    return res;
+  },
+  get(key) {
+    const target = this.raw;
+    const hadKey = target.has(key);
+    track(target, key); // 建立追踪依赖
+    if(hadKey) {
+      const res = target.get(key);
+      return typeof res === 'object' ? reactive(res) : res; // 是否进一步包装为响应式数据
+    }
+  },
+  set(key, value) {
+    const target = this.raw;
+    const hadKey = target.has(key);
+    const oldValue = target.get(key);
+    // target.set(key, value); // 会造成数据污染
+    /*
+    解决数据污染：在调⽤ target.set 函数设置值
+    之前对值进⾏检查即可：只要发现即将要设置的值是响应式数据，那
+    么就通过 raw 属性获取原始数据，再把原始数据设置到 target 上，
+    */ 
+   const rawValue = value.raw || value;
+   target.set(key, rawValue);
+    if(!hadKey) {
+      trigger(target, key, TriggerType.ADD); // 新增
+    } else if(value !== oldValue || (oldValue === oldValue && value === value)) {
+      trigger(target, key, TriggerType.SET); // 修改
+    }
+  },
+  forEach(callback, thisArgs) {
+    const target = this.raw;
+    const wrap = (val) => typeof val === 'object' ? reactive(val) : val;
+    track(target, ITERATE_KEY);
+    target.forEach((v, k) => {
+      callback.call(thisArgs, wrap(v), wrap(k), this)
+    })
+  },
+  /*
+  当我们使⽤ for...of 循环迭代⼀个代理对象p时，内
+  部会试图从代理对象 p 上读取 p[Symbol.iterator] 属性，这个操
+  作会触发 get 拦截函数
+  */ 
+  [Symbol.iterator]: iterationMethod,
+  entries: iterationMethod,
+  values: valuesIterationMethod,
+  keys: keysIterationMethod,
+}
+
+
+/*
+自定义迭代函数
+【注意】可迭代协议指的是⼀个对象实现了 Symbol.iterator ⽅法，⽽
+迭代器协议指的是⼀个对象实现了 next ⽅法
+*/ 
+
+function iterationMethod() {
+  const target = this.raw;
+  const wrap = (val) => typeof val === 'object' ? reactive(val) : val;
+  const itr = target[Symbol.iterator]();
+  track(target, ITERATE_KEY)
+  return {
+    // 迭代器协议
+    next() {
+      const { value, done } = itr.next();
+      return {
+        value: value ? [wrap(value[0]), wrap(value[1])] : value,
+        done,
+      }
+    },
+    // 可迭代协议
+    [Symbol.iterator]() {
+      return this;
+    }
+  }
+}
+
+function valuesIterationMethod() {
+  const target = this.raw;
+  const wrap = (val) => typeof val === 'object' ? reactive(val) : val;
+  const itr = target.values();
+  track(target, ITERATE_KEY)
+  return {
+    // 迭代器协议
+    next() {
+      const { value, done } = itr.next();
+      return {
+        value: wrap(value),
+        done,
+      }
+    },
+    // 可迭代协议
+    [Symbol.iterator]() {
+      return this;
+    }
+  }
+}
+
+function keysIterationMethod() {
+  const target = this.raw;
+  const wrap = (val) => typeof val === 'object' ? reactive(val) : val;
+  const itr = target.keys();
+  /*
+  调⽤ track 函数追踪依赖，在副作⽤函数与 MAP_KEY_ITERATE_KEY 之间
+  建⽴响应联系，避免不必要的更新
+  【注意】当循环遍历target.keys()时，修改了对应键的值时，对应键的副作用函数不应该执行，
+  故keys与values\entries等方法区分使用追踪的key
+  */ 
+  track(target, MAP_KEY_ITERATE_KEY);
+  return {
+    // 迭代器协议
+    next() {
+      const { value, done } = itr.next();
+      return {
+        value: wrap(value),
+        done,
+      }
+    },
+    // 可迭代协议
+    [Symbol.iterator]() {
+      return this;
+    }
+  }
+}
+
 
 /*
   创建响应式数据
@@ -299,6 +490,12 @@ function createReactive(obj, isShallow = false, isReadonly = false) {
         return target;
       }
 
+      // 当代理对象的原始对象数据类型为Set或Map时，访问代理对象size属性时会报错，此时需要修正this的指向，使得this指向原始对象
+      if(key === 'size') {
+        track(target, ITERATE_KEY)
+        return Reflect.get(target, key, target);
+      }
+
       // 不应该在副作⽤函数与 Symbol.iterator 这类 symbol值之间建⽴响应联系
       if(!isReadonly && typeof key !== 'symbol') {
         track(target, key);
@@ -307,6 +504,14 @@ function createReactive(obj, isShallow = false, isReadonly = false) {
       // 拦截数组方法
       if(Array.isArray(target) && arrayInstrumentations.hasOwnProperty(key)) {
         return Reflect.get(arrayInstrumentations, key, receiver);
+      }
+
+      // 拦截Set与Map数据类型的方法
+      if(['[object Map]', '[object Set]'].includes(Object.prototype.toString.call(target))) {
+        // 返回定义在 mutableInstrumentations 对象下的⽅法
+        console.log('in set map');
+        // return Reflect.get(mutableInstrumentations, key, receiver);
+        return mutableInstrumentations[key];
       }
 
       const res = Reflect.get(target, key, receiver);// 更正函数调用中的this指向问题
@@ -326,7 +531,7 @@ function createReactive(obj, isShallow = false, isReadonly = false) {
     拦截for...in循环
     （注意，当为对象添加/删除新属性，会对for...in循环次数产生影响，
     此时则需要触发与ITERATE_KEY相关联的副作用函数重新执行，
-    而修改已有属性时，不会对对for...in循环的执行次数产生影响
+    而修改已有属性时，不会对for...in循环的执行次数产生影响
     ）
     */ 
     ownKeys(target) {
@@ -380,6 +585,10 @@ function createReactive(obj, isShallow = false, isReadonly = false) {
 
 const reactiveMap = new Map(); // 定义一个Map，存储原始对象到代理对象之间的映射
 
+
+/*
+响应式数据
+*/ 
 function reactive(obj) {
   const existProxy = reactiveMap.get(obj);
   if(existProxy) return existProxy; // 返回已有的代理对象
@@ -388,18 +597,93 @@ function reactive(obj) {
   return proxy; // 返回新建代理对象
 }
 
+/*
+  浅响应式数据
+*/ 
 function shallowReactive(obj) {
   return createReactive(obj, true);
 }
 
+/*
+  只读响应式数据
+*/ 
 function readonly(obj) {
   return createReactive(obj, false, true);
 }
 
+/*
+  只读浅响应式数据
+*/ 
 function shallowReadonly(obj) {
   return createReactive(obj, true, true);
 }
 
+
+/*
+原始值的响应式
+*/ 
+
+function ref(val) {
+  const wrapper = {
+    value: val,
+  };
+  /*
+    在wrapper上定义一个不可枚举的属性，用于区分reactive创建的是原始值还是非原始值响应式数据
+  */ 
+  Object.defineProperty(wrapper, '__v_isRef', { value: true });
+  return reactive(wrapper);
+}
+
+
+/*
+对响应式数据做了⼀层包装，或者叫作“访问代
+理”
+*/ 
+function toRef(obj, key) {
+  const wrapper = {
+    get value() {
+      return obj[key];
+    },
+    set value(val) {
+      obj[key] = val;
+    }
+  }
+  Object.defineProperty(wrapper, '__v_isRef', { value: true })
+  return reactive(wrapper);
+}
+
+function toRefs(obj) {
+  const result = {};
+  for (const key in obj) {
+    if (Object.hasOwnProperty.call(obj, key)) {
+      result[key] = toRef(obj, key);
+    }
+  }
+  return result;
+}
+
+/*
+  实现自动脱ref|自动给ref设置值
+    ⾃动脱 ref，指的是属
+    性的访问⾏为，即如果读取的属性是⼀个 ref，则直接将该 ref 对应
+    的 value 属性值返回
+*/ 
+function proxyRefs(target) {
+  return new Proxy(target, {
+    get(target, key, receiver) {
+      const res = Reflect.get(target, key, receiver);
+      return res.__v_isRef ? res.value : res;
+    },
+    set(target, key, newVal, receiver) {
+      const value = target[key];
+      if(value.__v_isRef) {
+        value.value = value;
+        return true;
+      }
+      return Reflect.set(target, key, newVal, receiver);
+    }
+  })
+}
 
 
 
@@ -467,5 +751,28 @@ const newObj = {};
 const newArr = reactive([newObj]);
 console.log(newArr.includes(newArr[0])); // true
 console.log(newArr.includes(newObj)); // true
+
+const setData = new Set([1, 2,3]);
+const setProxy = reactive(setData);
+
+effect(() => {
+  console.log(setProxy.size, 'setProxy.size');
+  // setProxy.forEach((val) => {
+  //   console.log(val);
+  // })
+})
+setProxy.delete(1);
+
+const mapData = new Map([['key1', 'value1'], ['key2', 'value2']]);
+const mapDataProxy = reactive(mapData);
+effect(() => {
+  for (const key of mapDataProxy.keys()) {
+    console.log(key);
+  }
+})
+
+mapDataProxy.set('key1', 'valuetest'); // 不触发响应
+mapDataProxy.set('key3', 'valuetest3'); // 触发响应
+
 
 
