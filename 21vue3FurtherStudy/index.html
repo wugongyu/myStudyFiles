@@ -5,13 +5,26 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Document</title>
+  <style>
+    #app {
+      /* width: 100px;
+      height: 100px; */
+    }
+  </style>
 </head>
 <body>
   <!-- <script src="./index.js"></script> -->
-  <script src="./coreIndex.js"></script>
+  <!-- <script src="./coreIndex.js"></script> -->
+  <script
+src="https://unpkg.com/@vue/reactivity@3.0.5/dist/reactivity.global
+.js"></script>
   <div>
     <button id="btn">点击</button>
     <div id="text-wrapper"></div>
+    <div id="app"></div>
+    <div id="magic-diff"></div>
   </div>
+  <script src="./rendererIndex.js"></script>
+
 </body>
 </html>

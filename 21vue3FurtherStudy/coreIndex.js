@@ -2,7 +2,7 @@
   响应系统
 */
 
-/*
+/**
   注册副作用函数
 */ 
 
@@ -21,11 +21,11 @@ const TriggerType = {
 }
 
 
-/*
-  effect用于注册副作用函数
-  options：
-    1. 支持调度器scheduler传参，将控制权交给用户
-    2： 支持lazy传参，只有非lazy的时候才执行副作用函数
+/**
+*effect用于注册副作用函数
+*options：
+*  1. 支持调度器scheduler传参，将控制权交给用户
+* 2： 支持lazy传参，只有非lazy的时候才执行副作用函数
 */ 
 function effect(fn, options = {}) {
   // activeEffect = fn; // 调用effect注册副作用函数时，将fn传值给activeEffect
@@ -81,10 +81,10 @@ function track(target, key) {
   activeEffect.deps.push(deps);
 }
 
-/*
-将副作用函数从存储的桶中取出来并调用（在set拦截函数内调用trigger函数触发变化）
- type：TriggerType --操作类型
- newVal: 触发响应的新值
+/**
+  将副作用函数从存储的桶中取出来并调用（在set拦截函数内调用trigger函数触发变化）
+  type：TriggerType --操作类型
+  newVal: 触发响应的新值
 */ 
 function trigger(target, key, type, newVal) {
   let depsMap = bucket.get(target);
@@ -94,7 +94,7 @@ function trigger(target, key, type, newVal) {
   // effects && effects.forEach(fn => {
   //   fn()
   // }); 
-  /*
+  /**
   注意这里，在调用 forEach 遍历 Set 集合
   时，如果一个值已经被访问过了，但该值被删除并重新添加到集合，
   如果此时 forEach 遍历没有结束，那么该值会重新被访问。因此，上
@@ -109,7 +109,7 @@ function trigger(target, key, type, newVal) {
     }
   });
 
-  /*
+  /**
     仅添加|删除属性的时候才触发与ITERATE_KEY相关联的副作用函数，以减少性能消耗
     如果操作类型是 SET，并且⽬标对象是 Map 类型的数据，
     也应该触发那些与 ITERATE_KEY 相关联的副作⽤函数重新执⾏
@@ -126,7 +126,7 @@ function trigger(target, key, type, newVal) {
     })
   }
 
-  /*
+  /** 
     操作类型为ADD|DELETE
     并且数据类型为map
     触发那些与 MAP_KEY_ITERATE_KEY 相关联的副作⽤函数重新执⾏
@@ -154,7 +154,7 @@ function trigger(target, key, type, newVal) {
     })
   }
 
-  /*
+  /** 
   当修改数组 length 属性值时，只有那些索引值⼤于或等于新的 length 属
   性值的元素才需要触发响应。
   */ 
@@ -185,7 +185,7 @@ function trigger(target, key, type, newVal) {
   ))
 }
 
-/*
+/**
   计算属性computed与lazy
 
   计算属性：懒执行的副作用函数
@@ -217,7 +217,7 @@ function computed(getter) {
   return obj;
 }
 
-/*
+/**
   监听属性
   source-响应式数据
   cb-回调函数
@@ -291,7 +291,7 @@ function traverse(value, seen = new Set()) {
 
 }
 
-/*
+/**
   重写数组includes| indexOf, lastIndexOf方法，
   解决直接把原始对象obj作为参数传递给
 includes ⽅法，返回值为false的问题（原因为this指向代理对象）
@@ -309,7 +309,7 @@ const arrayInstrumentations = {};
   }
 });
 
-/*
+/**
 重写数组方法push、pop、shift、unshift 以及 splice ⽅法
 调整追踪方式
 数组的 push 等⽅法在语义上是修改操作，⽽⾮读取操作，但是会间接读取length
@@ -329,7 +329,7 @@ const arrayInstrumentations = {};
   }
 });
 
-/*
+/**
 重写map，set数据类型的set, add等方法
 */ 
 
@@ -399,7 +399,7 @@ const mutableInstrumentations = {
 }
 
 
-/*
+/**
 自定义迭代函数
 【注意】可迭代协议指的是⼀个对象实现了 Symbol.iterator ⽅法，⽽
 迭代器协议指的是⼀个对象实现了 next ⽅法
@@ -475,12 +475,11 @@ function keysIterationMethod() {
 }
 
 
-/*
+/**
   创建响应式数据
   isShallow -- 是否创建浅响应数据
   isReadonly -- 是否只可读
 */ 
-
 function createReactive(obj, isShallow = false, isReadonly = false) {
   return new Proxy(obj, {
     // 拦截读取操作
@@ -586,7 +585,7 @@ function createReactive(obj, isShallow = false, isReadonly = false) {
 const reactiveMap = new Map(); // 定义一个Map，存储原始对象到代理对象之间的映射
 
 
-/*
+/**
 响应式数据
 */ 
 function reactive(obj) {
@@ -597,21 +596,21 @@ function reactive(obj) {
   return proxy; // 返回新建代理对象
 }
 
-/*
+/**
   浅响应式数据
 */ 
 function shallowReactive(obj) {
   return createReactive(obj, true);
 }
 
-/*
+/**
   只读响应式数据
 */ 
 function readonly(obj) {
   return createReactive(obj, false, true);
 }
 
-/*
+/**
   只读浅响应式数据
 */ 
 function shallowReadonly(obj) {
@@ -619,7 +618,7 @@ function shallowReadonly(obj) {
 }
 
 
-/*
+/**
 原始值的响应式
 */ 
 
@@ -635,7 +634,7 @@ function ref(val) {
 }
 
 
-/*
+/**
 对响应式数据做了⼀层包装，或者叫作“访问代
 理”
 */ 
@@ -662,7 +661,7 @@ function toRefs(obj) {
   return result;
 }
 
-/*
+/**
   实现自动脱ref|自动给ref设置值
     ⾃动脱 ref，指的是属
     性的访问⾏为，即如果读取的属性是⼀个 ref，则直接将该 ref 对应
@@ -687,7 +686,7 @@ function proxyRefs(target) {
 
 
 
-/*
+/**
   应用
 */
 
