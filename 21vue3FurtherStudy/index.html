@@ -10,6 +10,23 @@
       /* width: 100px;
       height: 100px; */
     }
+    .origin-transition-box {
+      width: 100px;
+      height: 100px;
+      background-color: gray;
+    }
+    /* 初始状态 */
+    .enter-form {
+      transform: translateX(200px);
+    }
+    /* 结束状态 */
+    .enter-to {
+      transform: translateX(0px);
+    }
+    /* 运动过程 */
+    .enter-active {
+      transition: transform 1s ease-in-out;
+    }
   </style>
 </head>
 <body>
@@ -23,8 +40,12 @@ src="https://unpkg.com/@vue/reactivity@3.0.5/dist/reactivity.global
     <div id="text-wrapper"></div>
     <div id="app"></div>
     <div id="magic-diff"></div>
-  </div>
-  <script src="./rendererIndex.js"></script>
+    <div class="origin-transition-box-container">
 
+    </div>
+  </div>
+  <script src="./js/rendererIndex.js"></script>
+  <script src="./js/asyncComponents.js"></script>
+  <script src="./js/coreInnerComponents.js"></script>
 </body>
 </html>
