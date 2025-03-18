@@ -249,7 +249,7 @@ function transform(ast) {
     currentNode: null, // 当前正在转换的节点
     childIndex: 0, // 当前节点在父节点的children中的位置索引
     parent: null, // 当前转换节点的父节点
-    nodeTransforms: [transformText], // 转换回调函数，如果注册了多个转换函数，则它们的注册顺序将决定代码的执⾏结果
+    nodeTransforms: [transformText, transformElement, transformRoot], // 转换回调函数，如果注册了多个转换函数，则它们的注册顺序将决定代码的执⾏结果
     // 替换节点函数，参数为新节点
     replaceNode(node) {
       context.parent.children[context.childIndex] = node; // 替换节点
@@ -469,7 +469,7 @@ function transformElement(node, context) {
     }
 
     /*
-      3. 将当前标签对应的js AS添加到jsNode属性下
+      3. 将当前标签对应的js AST添加到jsNode属性下
     */ 
     node.jsNode = callExp;
   }
@@ -580,7 +580,7 @@ function genFunctionDecl(node, context) {
   push('{');
   // 缩进
   indent();
-  node.body.forEach(n => genNode(n, context)); // 为函数体生辰代码
+  node.body.forEach(n => genNode(n, context)); // 为函数体生成代码
   // 取消缩进
   deIndent();
   push('}');
