@@ -548,3 +548,28 @@ const testAst = parse(template);
 console.log(testAst, 'parse template  --- testAst');
 
 
+/**
+ * 编译优化
+ * */ 
+
+/*
+  补丁标志
+*/ 
+const PatchFlags = {
+  TEXT: 1, // 代表节点有动态的textContent
+  CLASS: 2, // 代表元素有动态的class绑定
+  STYLE: 3, // 代表元素有动态的style绑定
+}
+
+const vnode = {
+  tag: 'div',
+  children: [
+    {tag: 'div', children: 'foo'},
+    {tag: 'p', children: 'ctx.bar', patchFlag: PatchFlags.TEXT}, // 动态节点
+  ],
+  // 将children中的动态节点提取到dynamicChildren中
+  dynamicChildren: [
+    {tag: 'p', children: 'ctx.bar', patchFlag: PatchFlags.TEXT}, // 动态节点
+  ]
+}
+
