@@ -264,3 +264,12 @@ ID: tomoki1207.pdf
 版本: 1.2.2
 发布者: tomoki1207
 VS Marketplace 链接: <https://marketplace.visualstudio.com/items?itemName=tomoki1207.pdf>
+
+## todo list
+
+名称: Todo List
+ID: saber2pr.todolist
+说明: TodoList TreeView Editor.
+版本: 0.2.106
+发布者: saber2pr
+VS Marketplace 链接: https://marketplace.visualstudio.com/items?itemName=saber2pr.todolist

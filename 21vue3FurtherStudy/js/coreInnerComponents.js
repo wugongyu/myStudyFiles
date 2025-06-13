@@ -169,7 +169,7 @@ const Transition = {
           el.classList.add('leave-from');
           el.classList.add('leave-active');
 
-          document.body.offsetHeight; // 强制reflow，是的初始状态生效
+          document.body.offsetHeight; // 强制reflow，使得初始状态生效
 
           // 在下一帧修改状态
           nextFrame(() => {

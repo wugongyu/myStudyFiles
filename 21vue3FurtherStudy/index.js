@@ -80,3 +80,5 @@ function trigger(target, key) {
   effects && effects.forEach(fn => fn()); // 遍历执行副作用函数
 }
 
+
+// 脑子不用就会生锈
