@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>百分比表格背景色与导出</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #4a8cbf);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #app {
+            max-width: 1200px;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.97);
+            border-radius: 15px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.35);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(90deg, #2c3e50, #4a6491);
+            color: white;
+            padding: 25px 30px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.85;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .dashboard {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 25px;
+        }
+        
+        .controls {
+            flex: 1;
+            min-width: 300px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            margin-right: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .preview {
+            flex: 2;
+            min-width: 500px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            padding: 20px;
+            overflow: hidden;
+        }
+        
+        .panel-title {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+            display: flex;
+            align-items: center;
+        }
+        
+        .panel-title i {
+            margin-right: 10px;
+            color: #3498db;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
+        .color-preview {
+            display: flex;
+            height: 40px;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 15px 0;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .color-box {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            flex: 1;
+            min-width: 120px;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        button i {
+            font-size: 1.2rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(to right, #3498db, #2c80b9);
+            color: white;
+            box-shadow: 0 4px 10px rgba(52, 152, 219, 0.4);
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(to right, #2c80b9, #256a9c);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(52, 152, 219, 0.5);
+        }
+        
+        .btn-success {
+            background: linear-gradient(to right, #27ae60, #219653);
+            color: white;
+            box-shadow: 0 4px 10px rgba(39, 174, 96, 0.4);
+        }
+        
+        .btn-success:hover {
+            background: linear-gradient(to right, #219653, #1a7a40);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(39, 174, 96, 0.5);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(to right, #f39c12, #d35400);
+            color: white;
+            box-shadow: 0 4px 10px rgba(243, 156, 18, 0.4);
+        }
+        
+        .btn-warning:hover {
+            background: linear-gradient(to right, #d35400, #b34700);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(243, 156, 18, 0.5);
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            max-height: 500px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background-color: white;
+        }
+        
+        th {
+            background: linear-gradient(to bottom, #4a6491, #2c3e50);
+            color: white;
+            padding: 16px 20px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+            font-weight: 600;
+        }
+        
+        th:first-child {
+            border-top-left-radius: 10px;
+        }
+        
+        th:last-child {
+            border-top-right-radius: 10px;
+        }
+        
+        td {
+            padding: 14px 20px;
+            border-bottom: 1px solid #eaeef2;
+            font-weight: 500;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .progress-cell {
+            text-align: center;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 25px;
+            background: #2c3e50;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.95rem;
+        }
+        
+        .instructions {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 25px;
+            font-size: 0.95rem;
+        }
+        
+        .instructions h3 {
+            color: #1565c0;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .instructions h3 i {
+            margin-right: 10px;
+        }
+        
+        .instructions ul {
+            padding-left: 25px;
+        }
+        
+        .instructions li {
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+        
+        @media (max-width: 900px) {
+            .dashboard {
+                flex-direction: column;
+            }
+            
+            .controls {
+                margin-right: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>百分比表格背景色设置</h1>
+            <p class="subtitle">根据数据百分比设置单元格背景色，并支持带背景色的Excel导出功能</p>
+        </header>
+        
+        <div class="dashboard">
+            <!-- 控制面板 -->
+            <div class="controls">
+                <h2 class="panel-title"><i class="fas fa-sliders-h"></i> 控制面板</h2>
+                
+                <div class="form-group">
+                    <label for="minColor">最低百分比颜色：</label>
+                    <input type="color" id="minColor" v-model="minColor">
+                </div>
+                
+                <div class="form-group">
+                    <label for="maxColor">最高百分比颜色：</label>
+                    <input type="color" id="maxColor" v-model="maxColor">
+                </div>
+                
+                <div class="form-group">
+                    <label>颜色预览：</label>
+                    <div class="color-preview">
+                        <div class="color-box" :style="{ backgroundColor: minColor }">0%</div>
+                        <div class="color-box" :style="{ backgroundColor: getColor(25) }">25%</div>
+                        <div class="color-box" :style="{ backgroundColor: getColor(50) }">50%</div>
+                        <div class="color-box" :style="{ backgroundColor: getColor(75) }">75%</div>
+                        <div class="color-box" :style="{ backgroundColor: maxColor }">100%</div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="rowCount">表格行数：</label>
+                    <select id="rowCount" v-model="rowCount" @change="generateData">
+                        <option value="5">5行</option>
+                        <option value="10">10行</option>
+                        <option value="15">15行</option>
+                    </select>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn-primary" @click="generateData">
+                        <i class="fas fa-sync-alt"></i> 生成数据
+                    </button>
+                    <button class="btn-success" @click="exportExcel">
+                        <i class="fas fa-file-excel"></i> 导出Excel
+                    </button>
+                    <button class="btn-warning" @click="resetColors">
+                        <i class="fas fa-palette"></i> 重置颜色
+                    </button>
+                </div>
+                
+                <div class="instructions">
+                    <h3><i class="fas fa-info-circle"></i> 使用说明</h3>
+                    <ul>
+                        <li>调整颜色选择器可以自定义百分比颜色渐变效果</li>
+                        <li>表格中的进度列会根据百分比值自动设置背景色</li>
+                        <li>"生成数据"按钮可以创建新的随机数据</li>
+                        <li>"导出Excel"按钮可导出带背景色的表格数据</li>
+                        <li>导出的Excel文件将保留所有背景色设置</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- 表格预览 -->
+            <div class="preview">
+                <h2 class="panel-title"><i class="fas fa-table"></i> 数据表格预览</h2>
+                
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>项目名称</th>
+                                <th>负责人</th>
+                                <th>完成进度</th>
+                                <th>截止日期</th>
+                                <th>状态</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(item, index) in tableData" :key="index">
+                                <td>{{ item.id }}</td>
+                                <td>{{ item.name }}</td>
+                                <td>{{ item.owner }}</td>
+                                <td class="progress-cell" :style="{ backgroundColor: getColor(item.progress) }">
+                                    {{ item.progress }}%
+                                </td>
+                                <td>{{ item.deadline }}</td>
+                                <td>{{ item.status }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="legend">
+                    <span>0%</span>
+                    <span>25%</span>
+                    <span>50%</span>
+                    <span>75%</span>
+                    <span>100%</span>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>© 2023 百分比表格背景色系统 | 使用Vue2和SheetJS实现</p>
+        </footer>
+    </div>
+
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                minColor: '#ffebee', // 浅红色
+                maxColor: '#e53935', // 深红色
+                rowCount: 10,
+                tableData: []
+            },
+            mounted() {
+                this.generateData();
+            },
+            methods: {
+                // 生成随机表格数据
+                generateData() {
+                    const projects = ['网站改版', '移动端开发', '数据库迁移', 'API接口优化', '安全升级', 
+                                    '用户体验优化', '后台管理系统', '数据可视化', '性能优化', '测试自动化'];
+                    const owners = ['张伟', '王芳', '李娜', '刘洋', '陈明', '赵静', '杨帆', '周涛', '吴霞', '郑浩'];
+                    const statuses = ['进行中', '已完成', '已延期', '未开始', '暂停'];
+                    
+                    this.tableData = [];
+                    const count = parseInt(this.rowCount);
+                    
+                    for (let i = 1; i <= count; i++) {
+                        const progress = Math.floor(Math.random() * 101);
+                        const statusIndex = Math.floor(Math.random() * statuses.length);
+                        const days = Math.floor(Math.random() * 30) + 1;
+                        const deadline = new Date();
+                        deadline.setDate(deadline.getDate() + days);
+                        
+                        this.tableData.push({
+                            id: 'P' + (1000 + i),
+                            name: projects[Math.floor(Math.random() * projects.length)],
+                            owner: owners[Math.floor(Math.random() * owners.length)],
+                            progress: progress,
+                            deadline: deadline.toLocaleDateString(),
+                            status: statuses[statusIndex]
+                        });
+                    }
+                },
+                
+                // 根据百分比获取颜色
+                getColor(percent) {
+                    percent = Math.max(0, Math.min(100, percent)) / 100;
+                    
+                    // 将颜色转换为RGB
+                    const minRgb = this.hexToRgb(this.minColor);
+                    const maxRgb = this.hexToRgb(this.maxColor);
+                    
+                    // 计算插值
+                    const r = Math.round(minRgb.r + (maxRgb.r - minRgb.r) * percent);
+                    const g = Math.round(minRgb.g + (maxRgb.g - minRgb.g) * percent);
+                    const b = Math.round(minRgb.b + (maxRgb.b - minRgb.b) * percent);
+                    
+                    return `rgb(${r}, ${g}, ${b})`;
+                },
+                
+                // 重置颜色
+                resetColors() {
+                    this.minColor = '#ffebee';
+                    this.maxColor = '#e53935';
+                },
+                
+                // 导出Excel
+                exportExcel() {
+                    // 创建工作簿
+                    const wb = XLSX.utils.book_new();
+                    
+                    // 准备表格数据
+                    const excelData = [
+                        ['ID', '项目名称', '负责人', '完成进度', '截止日期', '状态']
+                    ];
+                    
+                    // 准备样式数据
+                    const styles = [];
+                    
+                    // 添加表头样式
+                    const headerStyle = {
+                        fill: { fgColor: { rgb: "4a6491" } },
+                        font: { bold: true, color: { rgb: "FFFFFF" } },
+                        alignment: { horizontal: "center" }
+                    };
+                    styles.push([headerStyle, headerStyle, headerStyle, headerStyle, headerStyle, headerStyle]);
+                    
+                    // 添加数据行
+                    this.tableData.forEach(item => {
+                        const row = [
+                            item.id,
+                            item.name,
+                            item.owner,
+                            item.progress + '%',
+                            item.deadline,
+                            item.status
+                        ];
+                        excelData.push(row);
+                        
+                        // 为进度列添加背景色
+                        const bgColor = this.rgbToHex(this.getColor(item.progress));
+                        const rowStyles = [
+                            {}, {}, {}, 
+                            { fill: { fgColor: { rgb: bgColor } } },
+                            {}, {}
+                        ];
+                        styles.push(rowStyles);
+                    });
+                    
+                    // 创建工作表
+                    const ws = XLSX.utils.aoa_to_sheet(excelData);
+                    
+                    // 添加样式
+                    if (ws['!cols'] === undefined) ws['!cols'] = [];
+                    for (let i = 0; i < 6; i++) {
+                        ws['!cols'][i] = { width: 15 };
+                    }
+                    
+                    // 应用样式
+                    Object.keys(ws).forEach((key, index) => {
+                        if (key.startsWith('!')) return;
+                        
+                        const cell = ws[key];
+                        const row = parseInt(cell.v.r) - 1; // 减去表头
+                        const col = cell.v.c;
+                        
+                        if (styles[row] && styles[row][col]) {
+                            cell.s = styles[row][col];
+                        }
+                    });
+                    
+                    // 将工作表添加到工作簿
+                    XLSX.utils.book_append_sheet(wb, ws, "项目进度");
+                    
+                    // 导出Excel文件
+                    XLSX.writeFile(wb, "项目进度表.xlsx");
+                },
+                
+                // 辅助函数：十六进制转RGB
+                hexToRgb(hex) {
+                    hex = hex.replace(/^#/, '');
+                    
+                    // 处理缩写形式
+                    if (hex.length === 3) {
+                        hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+                    }
+                    
+                    const num = parseInt(hex, 16);
+                    return {
+                        r: (num >> 16) & 255,
+                        g: (num >> 8) & 255,
+                        b: num & 255
+                    };
+                },
+                
+                // 辅助函数：RGB转十六进制
+                rgbToHex(rgb) {
+                    const match = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+                    if (!match) return "FFFFFF";
+                    
+                    const r = parseInt(match[1], 10);
+                    const g = parseInt(match[2], 10);
+                    const b = parseInt(match[3], 10);
+                    
+                    return ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
