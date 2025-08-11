@@ -1318,3 +1318,134 @@ os.freemem() 查看操作系统的闲置内存，单位为字节
   【注意】当从slab单元中再次分配但slab剩余空间不够时，将会构造新的slab，原slab中剩余的空间将会造成浪费。
 
   由于同一个slab可能分配给多个Buffer对象使用，只有这些小Buffer对象再作用域释放并都可回收时，slab的8KB空间才会被回收。尽管创建了1字节的Buffer对象，但如果不释放它，实际可能是8KB的内存没有释放。
+
+##### 分配大Buffer对象
+
+  如果需要超过8KB的Buffer对象，将会直接分配一个SlowBuffer对象作为slab单元，这个slab单元将会被这个大Buffer对象独占。
+
+  注意SlowBuffer类是在C++中定义的，虽然引用Buffer模块可以访问到它，但不推荐直接操作，而是用Buffer替代。
+
+### Buffer的转换
+
+  Buffer可以与以下字符串之间相互转换：
+
+- ASCII
+- UTF-8
+- UTF-16LE/UCS-2
+- Base64
+- Binary
+- Hex
+
+#### 字符串转Buffer
+
+  字符串转Buffer对象主要通过构造函数完成：
+
+  new Buffer(str, [encoding]);
+  
+  encoding不传值时，默认按UTF-8进行转码和存储。
+
+#### Buffer转字符串
+
+  Buffer对象的toString()可以将Buffer对象转换为字符串。
+
+  var buf = new Buffer();
+  buf.toString([encoding], [start], [end])
+
+#### Buffer不支持的编码类型
+
+  Buffer提供了一个isEncoding()函数来判断编码是否支持转换：
+  Buffer.isEncoding(encoding);
+
+  在中国常用的GBK、GB2312、BIG-5编码都不在支持的行列中。
+
+  对于不支持的编码类型，可借助Node生态圈中的模块（例如iconv、iconv-lite模块等）完成转换。
+
+  icon-lite采用纯js实现（轻量且性能较好），iconv则通过C++调用libiconv库完成。
+
+  iconv和iconv-lite对于无法转换的内容进行的降级处理方案不尽相同。iconv-lite对于无法转换的内容：多字节内容输出为�，单字节内容输出为?。iconv则有三级降级策略：尝试翻译无法转换的内容，或者忽略这些内容，若不设置忽略，iconv对于无法转换的内容会得到EILSEQ异常。
+
+### Buffer的拼接
+
+  注意，在Buffer的使用场景中给，通常是以一段一段的方式传输，对于国外的英文环境而言，分段式进行代码拼接不会出现问题，但对于**宽字节的中文**，在**文件可读流的每次读取的buffer长度设置了限制**的情况下，却会形成问题，乱码由此而产生。
+
+  ```js
+  var fs = require('fs');
+
+  // var rs = fs.createReadStream('test.md');
+  var rs = fs.createReadStream('test.md', { highWaterMark: 11 }); // 将文件可读流的每次读取的Buffer长度限制为11
+  var data = '';
+  rs.on("data", function(chunk) {
+    data += chunk;
+  });
+  rs.on("end", function() {
+    console.log(data);
+  });
+  ```
+
+#### 乱码的产生以及解决方案
+
+##### setEncoding()与string_decoder()
+
+  可读流有一个设置编码的方法**setEncoding()**，它的作用为**让data事件中传递的不再时一个Buffer对象，而是编译后的字符串**。
+  ```js
+  var rs = fs.createReadStream('test.md', { highWaterMark: 11 });
+  rs.setEncoding('utf8');
+  ```
+
+  setEncoding如何解决乱码的？
+  在调用setEncoding()时，可读流对象在内部设置了一个**decoder对象**，每次data事件都**通过该decoder对象进行Buffer到字符串的解码**，然后传递给调用者。而decoder对象是string_decoder模块StringDecoder的实例对象。
+
+  StringDecoder在得到编码后，虽然如前面例子，每一次buffer长度限制为11，但在知道**宽字节字符串在UTF-8编码下是以3个字节的方式存储的**，所以第一次write()写入时，只输出钱9个字节转码形成的字符，两个**剩余字节被保留在StringDecoder实例内部**，在第二次write()写入时，会**将前面剩余的字节和后续字节组合在一起，再次用3的整数倍字节进行转码**，于是乱码就通过这种中间形式被解决了。
+
+  但注意，**string_decoder模块只能处理UTF-8、Base64和UCS-2/UTF-16LE这3种编码**。
+
+##### 正确拼接Buffer
+
+  正确的拼接方式是用一个数组来存储接收到的所有Buffer片段并记录下所有片段的总长度，然后调用Buffer.concat()方法生成一个合并的Buffer对象。（Buffer.concat()方法封装了从小Buffer对象向大Buffer对象的复制过程）
+
+  ```js
+  var fs = require('fs');
+  var iconv = require('iconv-lite');
+  var rs = fs.createReadStream('test.md', { highWaterMark: 11 }); // 将文件可读流的每次读取的Buffer长度限制为
+  var chunks = [];
+  var size = 0;
+
+  rs.on("data", function(chunk) {
+    chunks.push(chunk);
+    size += chunk.length;
+  });
+
+  rs.on("end", function() {
+    var buf = Buffer.concat(chunks, size);
+    var str = iconv.decode(buf, "utf8");
+    console.log(str);
+})
+  ```
+
+### Buffer与性能
+
+  Buffer在文件I/O和网络I/O中运用广泛，尤其在网络传输中，其性能举足轻重。在应用中，通常会操作字符串，但在网路传输中，都需要转换为Buffer，用以进行二进制数据传输，在web应用中，字符串转换到Buffer是时时刻刻发生的，故**提高字符串到Buffer的转换效率，可以很大程度地提高网络吞吐率**。
+
+  ```js
+  var http = require('http');
+  var helloworld = '';
+  for(var i = 0; i < 1024 * 10; i++) {
+    helloworld += "a";
+  }
+
+  // helloworld  = new Buffer(helloworld); // 预先转换静态内容为Buffer对象
+
+  http.createServer(function(req, res) {
+    res.writeHead(200);
+    res.end(helloworld)
+  }).listen(8001);
+  ```
+  通过**预先转换静态内容为Buffer对象，可以有效地减少CPU的重复使用，节省服务器资源**。在Node构建的web应用中，可以选择将页面中的动态内容和静态内容分离，静态内容部分可以通过预先转换为Buffer的方式，使性能得到提升。由于文件自身是二进制数据，所以在不需要改变内容的场景下，尽量只读取buffer，然后直接传输，不做额外的转换，避免损耗。
+
+  此外，在文件读取中，highWaterMark的设置对性能的影响至关重要。
+
+  - highWaterMark设置对Buffer内存的分配和使用有一定的影响。
+  - highWaterMark设置过小，可能会导致系统调用次数过多。
+
+  对于读取一个相同的大文件时，**highWaterMark值的大小与读取速度的关系：该值越大，读取速度越快**。
+
