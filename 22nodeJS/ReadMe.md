@@ -196,7 +196,7 @@
 
 - js模块的编译
   在编译的过程中，**node对获取的javascript文件内容进行了头尾包装**。
-  在头部添加了(function(exports, require, module, __filename, __dirname){\n，
+  在头部添加了(function(exports, require, module, __filename,__dirname){\n，
   在尾部添加了\n}).
 
   这样每个模块文件之间都进行了**作用域隔离**，包装之后的代码会通过vm原生模块的**runInThisContext()方法执行**（类似eval，但具有明确上下文，不污染全局），返回具体的function对象，最后，将当前模块对象的exports属性、require()方法、module（模块对象自身）、__filename（完整文件路径）、__dirname（文件目录）**作为参数传递给这个function()执行**。
@@ -361,7 +361,7 @@ package.json必需字段
     AMD规范是COMMONJS规范的一个延伸。
 
     AMD规范中，需要使用define来明确定义一个模块，通过形参传递依赖到模块内容中
-    
+
   ```js
     define(id?, dependencies?, factory);
 
@@ -379,6 +379,7 @@ package.json必需字段
   CMD规范与AMD规范的主要区别在于定义模块和依赖引入的部分。
 
   AMD需要在声明模块的时候指定所有的依赖，通过形参传递依赖到模块内容中：
+
   ```js
   define(['dep1', 'dep2'], function(dep1, dep2) {
     return function() {};
@@ -388,6 +389,7 @@ package.json必需字段
   CMD则更接近与Ndde在CommonJS规范的定义，在依赖部分，CMD支持动态引入,
   require、exports、module通过形参传递给模块，在需要依赖模块时，随时调用require()
   引入即可。
+
   ```js
   define(function(require, exports, module) {
 
@@ -461,7 +463,7 @@ package.json必需字段
 - 异步I/O的第二阶段：**回调通知，执行回调**
   线程池中的I/O操作完毕之后，会将获取的结果存储在req->result属性上，然后调用相关方法通知IOCP（向IOCP提交执行状态），告知当前对象操作已经完成，从而将线程归还给线程池
 
-  在这个过程中，还动用了**事件循环中的I/O观察者**。在每次Tick的执行中，它会调用IOCP相关的方法检查线程线程中是否有执行完的请求，如果有，会将请求对象加入到I/O观察者的队列中，然后将其当作事件处理。 
+  在这个过程中，还动用了**事件循环中的I/O观察者**。在每次Tick的执行中，它会调用IOCP相关的方法检查线程线程中是否有执行完的请求，如果有，会将请求对象加入到I/O观察者的队列中，然后将其当作事件处理。
   **I/O观察者回调函数的行为就是取出请求对象中的的result属性性作为参数，取出oncomplete_sym属性作为方法，然后调用执行，以此达到调用JavaScript传入的回调函数的目的**。
 
   [异步io流程图](./imgs/%E5%BC%82%E6%AD%A5io%E6%B5%81%E7%A8%8B%E5%9B%BE.png)
@@ -603,6 +605,7 @@ package.json必需字段
   ```
 
   随着业务增长，可以继续利用发布订阅方式来完成多对多的方案，结合利用简单的偏函数完成多对一的收敛和事件订阅发布模式中一对多的发散。
+
   ```js
   var emitter = nre events.Emitter();
   var done = after(time,render);
@@ -621,7 +624,7 @@ package.json必需字段
   });
   ```
 
-##### 自定义编写的EventProxy模块，对事件订阅发布模式进行扩充，可以自由订阅组合事件。
+##### 自定义编写的EventProxy模块，对事件订阅发布模式进行扩充，可以自由订阅组合事件
 
   EventProxy提供了一个**all()方法来订阅多个事件，当每个事件都被触发之后，侦听器才会执行**，注意，在侦听器中返回数据的参数列表与定于组合时间的事件列表是一致对应的。
 
@@ -654,6 +657,7 @@ package.json必需字段
 #### 2. Promise/Deferred模式
 
   使用事件的方式时，执行流程需要被预先设定。即便是分支，也需要预先设定，这是由发布订阅模式的运行机制所决定的。
+
   ```js
   $.get('api', {
     success: onSuccess,
@@ -663,6 +667,7 @@ package.json必需字段
   ```
 
   而**Promise/Deferred模式则是一种先执行异步调用（promise），延迟传递处理（deferred）的方式**。
+
   ```js
   $.get('api')
   .success(onSuccess)
@@ -765,6 +770,7 @@ Promise通过封装异步调用，实现了正向用例和反向用例的分离�
 
 - 异步调用的依赖处理
   series适合无依赖的异步串行执行，但当前一个的结果时后一个调用的输入时，async提供了**waterfall()来满足这种场景的需求（有依赖输入处理）**。
+
   ```js
   async.waterfall([
     function(callback) {
@@ -822,6 +828,7 @@ Promise通过封装异步调用，实现了正向用例和反向用例的分离�
 ##### Step
 
   step是另一个知名的流程控制库，它比async更轻量，在api的暴露上也更具备一致性，因为它只有一个接口——step。
+
   ```js
   Step(task1, task2, task3, ...);
 
@@ -855,6 +862,7 @@ Promise通过封装异步调用，实现了正向用例和反向用例的分离�
     }
   )
   ```
+
  Step通过this.parallel()方法实现多个异步任务并行执行，它告诉Step，当前任务需要等内部所有任务完成时才进行下一个任务。
 
  Step的parallel()方法的原理是每次执行时将内部的计数器加1，然后返回一个回调函数，这个回调函数在异步调用结束时才执行。当回调函数执行时，将计数器减1。当计数器为0时，告知Step所有的异步调用结束了，Step会执行下一个方法。
@@ -864,12 +872,15 @@ Promise通过封装异步调用，实现了正向用例和反向用例的分离�
 - 结果分组
   Step使用this.group()对调用结果进行分组
   parallel传递给下一个任务的结果如下形式
+
   ```js
   function(err, result1, result2, ...) {
 
   }
   ```
+
   group传递的结果为如下，它返回的数据保存在数组中：
+
   ```js
   function(err, result) {
     // result: [result1, result2, ...]
@@ -909,6 +920,7 @@ Promise通过封装异步调用，实现了正向用例和反向用例的分离�
 - 排序算法的继续执行将会启动更多动画
 
 wind使得冒泡排序动画起来的实现：
+
 ```js
 var compare = function(x, y) {
     return x - y;
@@ -982,6 +994,7 @@ var bagpipe = new Bagpipe(10, {
   refuse: true, // 开启拒绝模式
 })
 ```
+
 在拒绝模式下，如果等待的调用队列也满了之后，信赖的调用就直接返给它一个队列太忙的拒绝异常。
 
 ##### bagpipe的超时控制
@@ -1033,6 +1046,7 @@ bagpipe所提供的超时控制，是**为异步调用设置一个时间阈值**
     external: 8882 
   }
   ```
+
   通过上述node代码，返回的属性中，heapTotal和heapUsed是v8的堆内存使用情况，前者是已申请到的堆内存，后者是当前使用的量。
 
   当我们在代码中**声明变量并赋值**时，所使用对象的内存就**分配在堆中**。如果已申请的堆空闲内存**不够分配新的对象，将继续申请堆内存**，直到堆的大小**超过v8的限制为止**。
@@ -1070,7 +1084,7 @@ V8堆整体大小就是新生代所用内存空间加上老生代的内存空间
 
 2. V8主要的垃圾回收算法
 
-  1. scavenge算法
+1. scavenge算法
     scavenge——英文含义为清扫、清除废物。
     **新生代**中的对象主要通过scavenge算法进行垃圾回收，在scavenge的具体实现中，主要采用了**cheney算法**（C.J.Cheney发表）。
 
@@ -1089,7 +1103,7 @@ V8堆整体大小就是新生代所用内存空间加上老生代的内存空间
     - To空间的内存占用比超过限制（限制值为25%）
       如果To空间已经使用超过25%，会将该对象直接晋升到老生代空间中，因为如果To空间的使用率占比过高，会影响后续的内存分配。
 
-  2. Mark-Sweep & Mark-Compact
+2. Mark-Sweep & Mark-Compact
     老生代中的对象，由于存活对象占比较大，若采用scavenge算法则有两个问题：复制存活对象效率较低、会浪费一半内存空间。
 
     因此**老生代中主要采用了Mark-Sweep和Mark-Compact相结合的方式进行垃圾回收**。
@@ -1117,9 +1131,11 @@ V8堆整体大小就是新生代所用内存空间加上老生代的内存空间
     V8后续还引入了**延迟清理（lazy sweeping）与增量式整理（incremental compaction）**，实现增量式的清理与整理动作，并引入了**并行标记与并行清理**，进一步利用多核性能降低每次停顿的事件
 
 #### 查看垃圾回收日志
+
   ```powershell
     node --trace_gc -e "var a = []; for(var i = 0; i < 100000; i++) a.push(new Array(100));" > gc.log
   ```
+
   [gc.log](./gc.log);
 
   通过在node启动时使用--prof参数，可以得到v8执行时的性能分析数据，其中包含了垃圾回收执行时占用的时间。
@@ -1214,15 +1230,15 @@ os.freemem() 查看操作系统的闲置内存，单位为字节
 
   【注意】node中，**一旦一个对象被当作缓存使用，则意味它将常驻在老生代中**。缓存中存储的键越多，长期存活的对象则越多，这将导致垃圾回收在进行扫描和整理时，对这些对象做无用功。
 
-  - 缓存限制策略
+- 缓存限制策略
 
     为解决缓存中对象永远无法释放的问题，需加入一种策略来吸纳之缓存的无限增长。
-    
+
     简单的限制策略：即记录键在数组中，一旦超过数量，就以先进先出的方式淘汰。
 
     [高效的缓存策略](https://github.com/isaacs/node-lru-cache)
 
-  - 缓存的解决方案
+- 缓存的解决方案
     1. 将缓存转移到外部，减少常驻内存的对象的数量，让垃圾回收更高效。
     2. 进程之间可以共享缓存。
     例如： Redis Memcached
@@ -1248,6 +1264,7 @@ os.freemem() 查看操作系统的闲置内存，单位为字节
     ```powershell
     $ npm install heapdump
     ```
+
   3. dtrace
     dtrace工具用于分析内存泄漏
   4. node-memwatch
@@ -1387,6 +1404,7 @@ os.freemem() 查看操作系统的闲置内存，单位为字节
 ##### setEncoding()与string_decoder()
 
   可读流有一个设置编码的方法**setEncoding()**，它的作用为**让data事件中传递的不再时一个Buffer对象，而是编译后的字符串**。
+
   ```js
   var rs = fs.createReadStream('test.md', { highWaterMark: 11 });
   rs.setEncoding('utf8');
@@ -1440,12 +1458,511 @@ os.freemem() 查看操作系统的闲置内存，单位为字节
     res.end(helloworld)
   }).listen(8001);
   ```
+
   通过**预先转换静态内容为Buffer对象，可以有效地减少CPU的重复使用，节省服务器资源**。在Node构建的web应用中，可以选择将页面中的动态内容和静态内容分离，静态内容部分可以通过预先转换为Buffer的方式，使性能得到提升。由于文件自身是二进制数据，所以在不需要改变内容的场景下，尽量只读取buffer，然后直接传输，不做额外的转换，避免损耗。
 
   此外，在文件读取中，highWaterMark的设置对性能的影响至关重要。
 
-  - highWaterMark设置对Buffer内存的分配和使用有一定的影响。
-  - highWaterMark设置过小，可能会导致系统调用次数过多。
+- highWaterMark设置对Buffer内存的分配和使用有一定的影响。
+- highWaterMark设置过小，可能会导致系统调用次数过多。
 
   对于读取一个相同的大文件时，**highWaterMark值的大小与读取速度的关系：该值越大，读取速度越快**。
 
+## 网络编程
+
+  在web领域，大多数编程语言需要专门的web服务器作为容器，如ASP、ASP.NET需要IIS作为服务器，PHP需要搭载Apache或nginx环境，JSP需要tomcat服务器等。而对于Node而言，只需几行代码即可构建服务器，无需额外的容器。
+
+### 构建TCP服务
+
+  **TCP全名为传输控制协议**，在OSI模型中（物理层、链路层、网络层、传输层、会话层、表示层、应用层）中属于传输层协议。
+  许多应用层协议基于TCP创建，如HTTP、SMTP、IMAP等协议。
+
+  TCP为面向连接的协议，在传输之前需要**3次握手**形成会话。在会话形成之后，服务器端和客户端之间才能发送数据。
+  在创建会话的过程中，服务器端和客户端分别提供一个**套接字**，两个套接字共同形成一个连接，服务器端和客户端通过套接字实现两者之间连接的操作。
+
+#### 创建一个TCP服务器
+
+  ```js
+  var net = require('net');
+  var server  = net.createServer(function(socket) {
+    socket.on("data", function(data) {
+      socket.write("in data transfer")
+    });
+    socket.on("end", function() {
+      console.log('disconnect');
+    });
+    socket.write("welcome to tcp server");
+  });
+  server.listen(8124, function() {
+    console.log("server bound");
+  })
+  ```
+
+#### TCP服务的事件
+
+##### 服务器事件
+
+  通过net.createServer()创建的服务器（server），它的本质是一个EventEmitter实例，它的自定义事件有：
+
+- listening
+  server.listen(port, listeningListener)，作为listen第二个参数传入；
+  调用server.listen()绑定端口或者Domain Socket后触发
+- connection
+  net.createServer(..., connection)，作为最后一个参数传入；
+  每个客户端套接字连接到服务器端时触发
+- close
+  当服务器关闭时触发
+  在调用server.close()后，服务器将停止接受新的套接字连接，但保持当前存在的连接，等待所有连接都断开后，会触发该事件。
+- error
+  当服务器发生异常时触发该事件
+  如侦听一个使用中的端口（server.on("error", handler)），将会触发一个异常，
+  如不侦听error事件，服务器将会抛出异常
+
+##### 连接事件
+
+  服务器可以同事与多个客户端连接，对于每个连接而言是典型的可读可写**Stream对象**。Stream对象可以用于服务器和客户端之间的通信，既可以通过data事件从一端**读取**另一端发来的数据，也可以通过**write()**方法从一端向另一端**发送数据**。它的自定义事件有：
+
+- data
+  当一端调用write()发送数据时，另一端会触发data事件，事件传递的数据即是write发送的数据。
+- end
+  当连接中的任意一端发送FIN数据时将触发该事件。
+- connect
+  该事件用于客户端，当套接字与服务器端连接成功时被触发。
+- drain
+  当任意一端调用write()发送数据时，当前这端会触发该事件。
+- error
+  异常发生时触发该事件。
+- close
+  套接字完全关闭时触发该事件。
+- timeout
+  当一定时间后连接不再活跃，该事件被触发，通知用户当前该连接已经被闲置。
+
+  **TCP的套接字为可读可写的Stream对象。**可利用pipe()方法巧妙地实现管道操作。
+
+  TCP针对网络中的**小数据包有一定的优化策略：Nagle算法**。若每次只发送一个字节的内容，网络中将充满只有极少数有效数据的数据包，将十分浪费网络资源。Nagle算法则是针对这种情况，**要求缓冲区的数据达到一定数量或者一定时间后才将其发出**，所以小数据包会被Nagle算法合并，以此优化网络。这样虽然能使网络带宽被有效利用，但**数据可能被延迟发送**。
+
+  node中，TCP默认启用Nagle算法。
+
+### 构建UDP服务
+
+  UDP——用户数据包协议，属于传输层协议。
+
+  UDP与TCP：
+  均属于传输层协议，
+  UDP不是面向连接。
+  TCP连接一旦建立，所有会话都**基于连接完成**，客户端如果要与另一个TCP服务通信，需要另外创建一个套接字来完成连接。
+  UDP中一个套接字可以与多个UDP服务通信，其提供面向事务的简单不可靠信息传输服务，网络差的情况下存在丢包严重的问题。
+  **UDP无需连接、资源消耗低、处理快速且灵活**，偶尔丢包问题影响不打，常用于音、视频。
+
+#### 创建UDP服务
+
+##### 创建UDP套接字
+
+  UDP套接字一旦创建，既可以作为客户端发送数据，也可以作为服务器端接收数据。
+
+  ```js
+  // 创建UDP套接字
+  var dgram = require("dgram");
+  var socket = dgram.createSocket("udp4");
+  ```
+
+##### 创建UDP服务器端
+
+  调用dgram.bind(port, [address])绑定网卡和端口可以让UDP套接字接收网络消息。
+
+  ```js
+  // 创建UDP套接字
+  var dgram = require("dgram");
+  var server = dgram.createSocket("udp4");
+
+  // 创建UDP服务器端
+  server.on("message", function(msg, rinfo) {
+    console.log("server got: " + msg + " from " + rinfo.address + ":" + rinfo.port);
+  });
+
+  server.on("listening", function() {
+    var address = server.address();
+    console.log("server listening " + address.address + ":" + address.port);
+  });
+
+  server.bind(41234);
+  ```
+
+##### 创建UDP客户端
+  
+  当套接字对象用在客户端时，可以调用send()方法发送消息到网络中。其参数为：发送的消息、消息的偏移量、消息的长度、目标端口、目标地址、发送完成后的回调。
+
+```js
+var dgram = require("dgram");
+var message = "client of udp message";
+var client = dgram.createSocket("udp4");
+client.send(message,0, message.length, 41234, "localhost", function(err, bytes) {
+  client.close();
+})
+```
+
+##### UDP套接字事件
+
+  UDP套接字是一个EventEmitter实例。它具备如下自定义事件：
+
+- message
+  当UDP套接字侦听网卡端口后，接收到消息时触发该事件。
+- listening
+  当UDP套接字开始侦听时触发该事件。
+- close
+  调用close方法时触发该事件，并不再触发message事件，如需再次触发message事件，重新绑定即可
+- error
+  异常发生时触发该事件，若不侦听，异常直接抛出，是进程退出。
+
+### 构建HTTP服务
+
+  ```js
+  var http = require('http');
+  http.createServer(function(req, res) {
+    res.writeHead(200, {'content-type': 'text/plain'});
+    res.end("server of http\n");
+  }).listen(1337, '127.0.0.1');
+  console.log("server running at http://127.0.0.1:1337/");
+  ```
+
+  node提供了基本的http和https模块用于HTTP和HTTPS的封装。
+  http全名为超文本传输协议（hyper text transfer protocol），它属于应用层协议。
+
+#### http
+
+##### http报文
+
+查看报文
+```powershell
+curl -v http://127.0.0.1:1337
+```
+
+报文如下：
+```text
+StatusCode        : 200
+StatusDescription : OK
+Content           : server of http
+
+RawContent        : HTTP/1.1 200 OK
+                    Connection: keep-alive
+                    Transfer-Encoding: chunked
+                    Content-Type: text/plain
+                    Date: Wed, 13 Aug 2025 09:07:22 GMT
+
+                    server of http
+
+Forms             : {}
+Headers           : {[Connection, keep-alive], [Transfer-Encoding, chunked], [Content-Type, text/plain], [Date, Wed, 13 Aug 2025 09:07:22 GMT]}
+Images            : {}
+InputFields       : {}
+Links             : {}
+ParsedHtml        : mshtml.HTMLDocumentClass
+RawContentLength  : 15
+```
+
+从协议的角度而言，如浏览器应用，它其实是一个HTTP代理，用户的行为将会通过它转化为HTTP请求报文发送给服务器端，服务器端在处理请求后，发送响应报文给代理，代理在解析报文后，将用户所需要的内容呈现在界面上。简而言之，**HTTP服务只做两件事情：处理HTTP请求和发送HTTP响应。**
+
+#### http模块
+
+  在node中，HTTP服务继承自TCP服务器（net模块），它能够与多个客户端保持连接，由于其采用事件驱动的形式，并不为每一个连接创建额外的线程或进程，保持很低的内存占用，所以能实现高并发。
+
+  HTTP服务与TCP服务：
+   在开启keepalive之后，一个TCP会话可以用于多次请求和响应，**TCP服务以connection为单位进行服务，HTTP服务以request为单位进行服务**。http模块即是将connection到request的过程进行了封装。
+
+  http模块将连接所用套接字的读写抽象为serverRequest和serverResponse对象，它们分别对应请求和响应操作。
+
+1. HTTP请求
+  对于TCP连接的读操作。http模块将其封装为ServerRequest对象。
+
+2. HTTP响应
+  ServerResponse对象，它封装了对底层连接的写操作，可看成一个可写的流对象。
+  影响报文头部信息的API: res.setHeader()——设置头部信息，res.writeHeader()——将修改后的头部信息写入到连接中。
+  设置报文体部分：res.write()——发送数据，res.end()发送信号告知服务器响应结束。res.end()会先调用write发送数据，然后再发送信号。
+  【注意】**报头是在报文体发送前发送的**，一旦开始了数据的发送，writeHead()和setHeader()将不再生效。此外，无论服务器在处理业务时是否发生异常，**务必在结束时调用res.end()结束请求**，否则客户端将一直处于等待的状态。
+  
+3. HTTP服务的事件
+  HTTP服务器抽象了一些事件，以供应用层使用，同样典型的是，服务器也是一个EventEmitter实例。
+
+- connection事件
+  当客户端与服务器端建立底层的TCP连接时，服务器触发一次connection事件。
+- request事件
+  建立连接后，当请求数据发送到服务器端，在解析出HTTP请求头后将会触发该事件。
+- close事件
+  当已有的连接都断开时，触发该事件。
+- checkContinue事件
+  客户端再发送较大的数据时，并不会将数据直接发送，而是先将一个头部带except: 100-continue的请求发送到服务器，服务器会触发checkContinue事件（若无监听该事件，服务器自动响应客户端100 continue状态码，表示接收数据上传），相应客户端400 bad request则表示拒绝客户端继续发送数据。
+  【注意】**当该事件发生时不会触发request事件，两个事件之间互斥**。
+- connect事件
+  客户端发起CONNECT请求时触发，而发起CONNECT请求通常在HTTP代理时出现。若不监听该事件，发起该请求的连接将会关闭。
+- upgrade事件
+  当客户端要求升级连接的协议时，需要和服务器端协商，客户端会在请求头中带上upgrade字段，服务器端会在接收到这样的请求时触发该事件。
+- clientError事件
+  连接的客户端触发error事件时，这个错误会传递到服务器端，此时触发该事件。
+
+#### http客户端
+
+  http模块提供了一个底层API：http.request(options,connect)用于构造HTTP客户端。
+
+  ```js
+  var options = {
+    hostname: '127.0.0.1',
+    port: 1224,
+    path: "/",
+    method: "GET",
+  }
+  var req = http.request(options, function(res){})
+  ```
+
+  options参数决定了HTTP请求头中的内容，它的选项有：
+
+- host
+  服务器域名或IP地址，默认localhost
+- hostname
+  服务器名称
+- port
+  服务器端口，默认80
+- localAddress
+  建立网络连接的本地网卡
+- socketPath
+  domain套接字路径
+- method
+  HTTP请求方法，默认GET
+- path
+  请求路径，默认/
+- headers
+  请求头对象
+- auth
+  basic认证
+
+  报文体的内容由请求对象的write()和end()方法实现：通过write()方法向连接中写入数据，通过end()方法告知报文结束。
+
+##### HTTP响应
+
+  在ClientRequest对象中，它的事件叫做response。ClientRequest在解析响应报文时，解析完响应头则触发response事件，同时传递一个响应对象以供操作ClientResponse。后续响应报文体以只读流的方式提供。
+
+##### HTTP代理
+
+  http提供的ClientRequest对象是基于TCP层实现的，**在keepalive情况下，一个底层会话连接可以多次用于请求**。http模块包含一个**默认的客户端代理对象http.globalAgent**，它对每个服务器端（host+port）创建的连接进行管理，默认情况下，ClientRequest对象对同一个服务器端发起的HTTP请求**最多可以创建5个连接**。
+
+##### HTTP客户端事件
+
+- response
+  与服务器端的request事件对应的客户端在请求发出后得到服务器响应时，会触发该事件。
+- socket
+  底层连接池中建立的连接分配给当前请求对象时触发该事件。
+- connect
+  客户端向服务器端发起CONNECT请求时，服务器端若响应200，客户端触发该事件。
+- upgrade
+  客户端向服务器端发起UPGRADE请求时，服务器端若响应101，客户端触发该事件。
+- continue
+  客户端向服务器端发起Except: 100-continue头信息试图发送较大数据量，服务器端若响应100，客户端触发该事件。
+
+### 构建WebSocket服务
+
+WebSocket更接近于传输层协议， 它是在TCP上定义独立的协议。
+WebSocket协议与node之间的配合堪称完美：
+
+- WebSocket客户端**基于事件的编程模型**与Node中自定义事件相差无几。
+- WebSocket实现了**客户端与服务器端之间的长连接**，而Node事件驱动的方式十分擅长**与大量的客户端保持高并发连接**。
+
+相比于传统HTTP，WebSocket有如下好处：
+
+- 客户端与服务器端**只建立一个TCP连接**，可以使用更少的连接。
+- WebSocket**服务器端可以推送数据到客户端**，远比HTTP请求响应模式更灵活、更高效。
+- 有**更轻量级的协议头**，减少数据传送量。
+
+
+在WebSocket之前，网页客户端与服务器端进行通信最高效的是**Comet技术**。实现Comet技术的细节为采用长轮询（long-polling）或iframe流。**长轮询原理**为客户端向服务器端发起请求，服务器端**只在超时或有数据响应时断开连接**（res.end()）；客户端在收到数据或超时后重新发起请求。这个请求行为拖着长长的尾巴，是故用Comet（彗星）来命名它。
+
+使用websocket，**网页客户端只需一个TCP连接即可完成双向通信**，在服务器端与客户端频繁通信时，无需频繁断开连接与重发请求。连接可以得到高效应用，编程模型也十分简洁。
+
+#### WebSocket握手
+
+  客户端建立连接时，通过HTTP发起请求报文。
+  ```
+  GET /chat HTTP/1.1
+  Host: server.example.com
+  Upgrade: websocket
+  Connection: Upgrade
+  Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==
+  Sec-WebSocket-Protocol: chat, superchat
+  Sec-WebSocket-Version: 13
+  ```
+
+  与普通的HTTP请求协议略有区别的部分在于WebSocket包含如下协议头：
+
+  ```
+  Upgrade: websocket
+  Connection: Upgrade
+  ```
+
+  上述Upgrade、Connection两个字段表示请求服务器升级协议为WebSocket；**Sec-WebSocket-Key用于安全校验**，它的值为随机生成的Base64编码的字符串，**服务端接收到之后将其与对应的字符串相连，形成新字符串**，并**通过sha1安全散列算法**计算出结果后，再进行Base64编码，最后返回给客户端。
+
+  Sec-WebSocket-Protocol与Sec-WebSocket-Version分别指定子协议和版本号。
+
+  服务器端在处理完请求后，响应如下报文（告知客户端正在更换协议，更换应用层协议为WebSocket协议）：
+  ```
+  HTTP/1.1 101 Switching Protocols
+  Upgrade: websocket
+  Connection: Upgrade
+  Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo= 
+  Sec-WebSocket-Protocol: chat
+  ```
+
+Sec-WebSocket-Accept为基于Sec-WebSocket-Key生成的字符串， **客户端会校验Sec-WebSocket-Accept的值**，如果成功，将开始数据传输。
+
+一旦websocket握手成功，服务器端与客户端将会呈现对等的效果，都能接收和发送消息。
+
+#### WebSocket数据传输
+
+  在握手顺利完成后，当前连接将不再进行HTTP的交互，而是开始**WebSocket的数据帧协议**，实现客户端与服务器端的数据交换。
+
+  [协议升级](./imgs/websocket_protocol_upgrade.png)
+
+
+  握手完成后，**客户端的onopen()将会被触发执行**。服务端没有onopen()方法可言，为完成TCP套接字事件到WebSocket事件的封装，需在接收数据时进行处理，**WebSocket的数据帧协议是在底层data事件上封装完成的**。
+
+  客户端调用**send()发送数据**时，服务器端**触发onmessage()**；服务器端调用send()发送数据，客户端onmessage()触发。
+
+  出于安全，客户端需对发送的数据帧进行掩码处理，**服务器一旦收到无掩码数据帧，连接将关闭**。而服务器发送到客户端的数据则无须做掩码处理，**客户端若收到带掩码的数据帧，连接将关闭**。
+
+##### websocket数据帧
+
+  websocket数据帧每8位（即1个字节）为一列。
+
+  [websocket](./imgs/websocket%E6%95%B0%E6%8D%AE%E5%B8%A7.png)
+
+- fin
+  若该数据帧为最后一帧，fin位值为1，其余情况为0。当数据没有被分为多帧时，它既为第一帧也为最后一帧。
+- rsv1、rsv2、rsv3
+  各为1位长，用于扩展。当有已协商的扩展时，这些值可能为1，其余情况为0。
+- opcode
+  长为4位的操作码，值范围为0-15，用于解释当前数据帧，具体值含义如下所示
+  0：附加数据帧；1：文本数据帧；2：二进制数据帧；8：发送一个连接关闭的数据帧；
+  9：ping数据帧；10：pong数据帧；其余值暂未定义。
+  **ping\pong数据帧用于心跳检测，当一端发送ping数据帧时，另一端必须发送pong数据帧作为响应**，告知对方这一端仍然处于响应状态。
+- masked
+  是否进行掩码处理，长度为1位。客户端发送给服务端，值为1；服务端发送给客户端，值为0。
+- payload length
+  一个7、7+16、7+64位长的数据位，标识数据的长度。
+  值在0~125之间：该值为数据真实长度；
+  值为126：后16位的值为数据的真实长度；
+  值位127：后64位的值为数据的真实长度。
+- masking key
+  masked值为1时存在，是一个32位长的数据位，用于解密数据。
+- payload data
+  目标数据，位数为8的倍数。
+
+【注意】node没有内置websocket库，但社区ws模块封装了websocket的底层实现。
+
+### 网络服务与安全
+  
+  node在网络安全上提供了3个模块，分别为**crypto、tls、https**。
+
+- crypto:主要用于加密解密，比如SHA1、MD5等加密算法。
+- tls模块:提供了与net模块类似的功能，区别在于它建立在TLS/SSL加密的TCP连接上。
+- https: 它完全与http模块接口一致，区别也仅在于它建立于安全的连接之上。
+
+#### TLS/SSL
+
+##### 密钥
+
+  TLS/SSL是一个**公钥/私钥非对称**的结构，每个服务器端和客户端都有自己的公私钥。**公钥用来加密传输数据，私钥用来解密接收数据**。公私钥是配对的，通过公钥加密的数据需要通过私钥进行解密。故**在建立安全连接之前，客户端和服务器端之间需要交换公钥**。客户端/服务器端发送数据时需要通过服务器端/客户端的公钥进行解密，如此才能完成加解密过程。
+
+  [客户端和服务器端交换密钥](./imgs/tls_ssl_%E5%8A%A0%E8%A7%A3%E5%AF%86%E8%BF%87%E7%A8%8B.png)
+
+  node底层采用openssl实现TLS/SSL。
+
+  【注意】非对称的公私钥加密，在网络中是可能**存在窃听的情况**，典型例子为：中间人攻击。客户端与服务器端在交换公钥的过程中，中间人对客户端扮演服务器端的角色，对服务器端扮演客户端的角色，因此客户端和服务器端几乎感受不到中间人的存在。
+  为解决这种问题，**数据传输过程中需对得到的公钥进行认证，以确认所得公钥出自目标服务器**，TLS/SSL则是引入了**数字证书**来进行认证。
+
+  ```shell
+  # 生成服务器端私钥
+  openssl genrsa -out server.key 1024
+  # 生成客户端私钥
+  openssl genrsa -out client.key 1024
+  # 生成服务端公钥
+  openssl rsa -in server.key -pubout -out server.pem
+  # 生成客户端公钥
+  openssl rsa -in client.key -pubout -out client.pem
+  ```
+
+##### 数字证书
+
+  数字证书中包含了服务器的名称、主机名、服务器的公钥、签名颁发机构的名称、来自签名颁发机构的签名。在建立连接之前，会通过整数中的签名确认收到的公钥是来自目标服务器的，从而产生信任关系。
+
+  数字认证中心（CA —— Certificate Authority）为站点颁发证书，这个证书中具有CA通过自己的公私钥实现的签名。
+  为得到签名证书**服务器端通过自己的私钥生成CSR文件**（Certificate Signing Request，证书签名请求）。**CA机构通过该CSR文件颁发属于该服务器端的签名证书**，通过CA机构即可验证证书是否合法。
+
+  自签名证书：即自己扮演CA机构，给自己的服务器端颁发证书签名。
+  
+1. 以下生成了扮演CA角色所需的文件：
+  ```shell
+  # 生成私钥
+  openssl genrsa -out ca.key 1024
+  # 生成CSR文件
+  openssl req -new -key ca.key -out ca.csr
+  # 通过私钥自签名生成证书
+  openssl x509 -req -in ca.csr -signkey ca.key -out ca.crt
+  ```
+
+2. 对于服务器端，需向CA机构申请签名证书，在申请签名证书前依旧要创建服务器端自己的CSR文件
+```shell
+```
+
+3. 服务器端向自己的CA机构申请签名，得到一个带有CA签名的证书
+
+4. 客户端在发起连接前获取服务器端证书，通过CA证书验证服务器端证书的真伪，此外还包含对服务器名称、IP地址等进行验证过程。
+
+#### TLS服务
+
+  将构建服务所需的证书备齐后，通过node的tls模块可创建一个安全的TCP服务。
+
+  1. TLS服务器端
+    ```shell
+    # 生成服务器端端私钥
+    openssl genrsa -out server.key 1024
+    # 生成csr
+    openssl req -new -key server.key -out server.csr
+    # 生成签名证书
+    openssl x509 -req -CA ca.crt -CAkey ca.key -CAcreateserial -in server.csr -out server.crt
+    ```
+
+  2. TLS客户端
+  在构建客户端之气那，同样需要为客户端生成自己的私钥和签名
+
+  ```shell
+  # 生成客户端私钥
+  openssl genrsa -out client.key 1024
+  # 生成csr
+  openssl req -new -key client.key -out client.csr
+  # 生成签名证书
+  openssl x509 -req -CA ca.crt -CAkey ca.key -CAcreateserial -in client.csr -out client.crt
+  ```
+
+【注】openssl命令参数说明
+```text
+  说明：
+  -in 文件名：指定输入文件
+  -out 文件名：指定输出文件
+  -inkey file：指定密钥输入文件，默认是私钥文件，指定了"-pubin"则表示为公钥文件，使用"-certin"则表示为包含公钥的证书文件
+  -pubin：指定"-inkey file"的file是公钥文件
+  -certin：使用该选项时，表示"-inkey file"的file是包含公钥的证书文件
+  -passin arg：传递解密密码。若验证签名时实用的公钥或私钥文件是被加密过的，则需要传递密码来解密。密码的格式见"openssl 密码格式"
+  【功能选项：】
+  -sign：签名并输出签名结果，注意，该选项需要提供RSA私钥文件
+  -verify：使用验证签名文件
+  -encrypt：使用公钥加密文件
+  -decrypt：使用私钥解密文件
+```
+
+#### HTTPS服务
+
+  HTTPS服务就是工作在TLS/SSL上的HTTP。
+
+  创建HTTPS服务：
+
+  1. 准备证书，可直接用上文生成的私钥和证书
+  2. 创建HTTPS服务
+  创建HTTPS服务只比HTTP服务多一个选项配置，其余地方几乎相同。
+  3. HTTPS客户端
