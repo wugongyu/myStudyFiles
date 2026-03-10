@@ -95,9 +95,29 @@
 
 ## 变化检测相关api
 
-  vm.$watch
-  vm.$set
-  vm.$delete
+### vm.$watch
+
+  用于观察一个表达式或computed函数（可能会涉及多个响应式数据）在vue.js实例上的变化
+
+  用法： vm.$watch(expOrFn: String | Function, callback: Function | Object, [options]: Object)
+
+  返回值：{Function}unwatch，取消观察函数，用来停止触发回调。
+
+  【注意】对于watcher监听类，由于需要返回一个取消观察函数unwatch，因此需要在watcher中记录其实例被收集在dep中的情况，并在用户调用unwatch的时候，将对应依赖在dep中进行移除。
+
+### vm.$set
+
+  用于在object上设置一个属性，若object是响应式的，vue.js会保证属性被创建后也是响应式的，并且触发视图更新。
+
+  用法：vm.$set(target: Object | Array, key: String | Number, value: any)
+
+  返回值： {Function} unwatch
+
+### vm.$delete
+
+  删除对象的属性，若对象为响应式的，需确保删除能触发更新视图。
+
+  用法：vm.$delete(target: Object | Array, key: String | Number)
 
 ## 虚拟DOM
 
