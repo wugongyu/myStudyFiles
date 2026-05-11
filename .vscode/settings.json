@@ -28,8 +28,8 @@
 
   // 启用自动代码修复功能，保存时触发 eslint 和 stylelint 的自动修复。
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true,
-    "source.fixAll.stylelint": true
+    "source.fixAll.eslint": "explicit",
+    "source.fixAll.stylelint": "explicit"
   },
 
   // volar 可以处理 vue 文件的格式化
